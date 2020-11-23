@@ -10,6 +10,7 @@ pre-commit = "*"
 pandas = "*"
 spacy = "*"
 label-studio = "*"
+jupyterlab = "*"
 
 [requires]
 python_version = "3.7"

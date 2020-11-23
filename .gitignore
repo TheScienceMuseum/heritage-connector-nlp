@@ -1,4 +1,6 @@
-# local data folder and config
+# repo-specific
+data/*
+labelling/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

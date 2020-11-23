@@ -9,3 +9,11 @@ Includes:
 - information extraction (NER, NEL, relation classification)
 - labelling ([Label Studio](https://labelstud.io/))
 - test suite for models
+
+
+## Usage
+
+### Setting up Label Studio
+
+1. Run `label-studio start labelling --init`, which will start up Label Studio and take you to a configuration wizard
+2. Select *Named Entity Recognition* from the top menu, and fill in the entity types you want to annotate
