@@ -1,5 +1,6 @@
 # repo-specific
 data/*
+!data/.gitkeep
 labelling/*
 
 # Byte-compiled / optimized / DLL files

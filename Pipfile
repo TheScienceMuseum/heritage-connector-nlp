@@ -12,6 +12,7 @@ spacy = "*"
 label-studio = "*"
 jupyterlab = "*"
 tqdm = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
