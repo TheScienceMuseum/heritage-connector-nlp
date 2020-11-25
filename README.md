@@ -25,4 +25,4 @@ Includes:
 **Useful parameters:**
 
 - `--sampling=uniform`: have Label Studio show documents in a random order
-- `-label-config label_studio_config_sample.xml`: load config from a file
+- `--label-config label_studio_config_sample.xml`: load config from a file
