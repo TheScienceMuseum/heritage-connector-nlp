@@ -12,16 +12,16 @@ logger = logging.get_logger(__name__)
 
 def test_ner(
     spacy_model,
-    results_set: str = None,
+    results_path: str = None,
     examples: List[Tuple[str, List[Tuple[int, int, str]]]] = None,
 ) -> dict:
     """
     Return precision, recall and F-score for a Spacy NER model based on a set of gold-standard
-    labels returned by Label Studio. One of `results_set` and `examples` should be provided.
+    labels returned by Label Studio. One of `results_path` and `examples` should be provided.
 
     Args:
         spacy_model: model with NER component
-        results_set (str, optional): name of results set from labelling/export folder
+        results_path (str, optional): path to Label Studio results (.zip file)
         examples (List[Tuple[str, List[Tuple[int, int, str]]]], optional): from `io.load_text_and_annotations_from_labelstudio`
 
     Returns:
@@ -30,11 +30,11 @@ def test_ner(
 
     assert "ner" in spacy_model.pipe_names
 
-    if (results_set and examples) or (not results_set and not examples):
-        raise ValueError("Please provide exactly one of `results_set` and `examples`.")
+    if (results_path and examples) or (not results_path and not examples):
+        raise ValueError("Please provide exactly one of `results_path` and `examples`.")
 
-    elif results_set:
-        examples = load_text_and_annotations_from_labelstudio(results_set, spacy_model)
+    elif results_path:
+        examples = load_text_and_annotations_from_labelstudio(results_path, spacy_model)
 
     scorer = Scorer()
     for input_, annot in examples:
