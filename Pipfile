@@ -7,6 +7,8 @@ verify_ssl = true
 pre-commit = "*"
 pytest = "*"
 black = "*"
+coverage = "*"
+pytest-cov = "*"
 
 [packages]
 pandas = "*"

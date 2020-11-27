@@ -34,7 +34,7 @@ def load_raw_labelstudio_results(results_set: str) -> dict:
 
 def load_text_and_annotations_from_labelstudio(
     results_set: str, spacy_model=None, adjust_entity_boundaries=True
-) -> List[Tuple[str, List[Tuple[int, int, str]]]]:
+) -> List[List[Tuple[str, List[Tuple[int, int, str]]]]]:
     """
     Load text and completed annotations from Label Studio, in the form [("my text", [(1, 3, "ORG"), (4, 10, "PERSON")]), ...].
     `spacy_model` is required for tokenization if `adjust_entity_boundaries` is set to True.
@@ -46,7 +46,7 @@ def load_text_and_annotations_from_labelstudio(
             If true, will adjust the start and end of the location of each entity to the closest true start or end.
 
     Returns:
-        List[str, List[Tuple[int, int, str]]]: text, annotations
+        List[List[Tuple[str, List[Tuple[int, int, str]]]]]: text, annotations
     """
 
     docs = load_raw_labelstudio_results(results_set)

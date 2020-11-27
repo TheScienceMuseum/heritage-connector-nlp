@@ -13,7 +13,7 @@ logger = logging.get_logger(__name__)
 def test_ner(
     spacy_model,
     results_set: str = None,
-    examples: List[Tuple[str, List[Tuple[int, int, str]]]] = None,
+    examples: List[List[Tuple[str, List[Tuple[int, int, str]]]]] = None,
 ) -> dict:
     """
     Return precision, recall and F-score for a Spacy NER model based on a set of gold-standard
@@ -22,7 +22,7 @@ def test_ner(
     Args:
         spacy_model: model with NER component
         results_set (str, optional): name of results set from labelling/export folder
-        examples (List[Tuple[str, List[Tuple[int, int, str]]]], optional): from `io.load_text_and_annotations_from_labelstudio`
+        examples (List[List[Tuple[str, List[Tuple[int, int, str]]]]], optional): from `io.load_text_and_annotations_from_labelstudio`
 
     Returns:
         dict: keys ents_p; ents_r; ents_f; ents_per_type
@@ -72,12 +72,12 @@ def test_ner(
     return ent_results
 
 
-def _count_labels(examples: List[Tuple[str, List[Tuple[int, int, str]]]]) -> dict:
+def _count_labels(examples: List[List[Tuple[str, List[Tuple[int, int, str]]]]]) -> dict:
     """
     Return the number of examples present for each label in examples.
 
     Args:
-        examples (List[Tuple[str, List[Tuple[int, int, str]]]]): ([text, [(annotation_start, annotation_end, annotation_label), ...]])
+        examples (List[List[Tuple[str, List[Tuple[int, int, str]]]]]): ([text, [(annotation_start, annotation_end, annotation_label), ...]])
 
     Returns:
         dict: {annotation_label: label_count, ...}
