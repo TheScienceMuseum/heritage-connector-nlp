@@ -2,12 +2,17 @@ import json
 from zipfile import ZipFile
 import os
 from typing import Tuple, List
+import spacy
+from tqdm.auto import tqdm
 from hc_nlp.spacy_helpers import correct_entity_boundaries
+from hc_nlp import logging
+
+logger = logging.get_logger(__name__)
 
 
 def load_raw_labelstudio_results(results_set: str) -> dict:
     """
-    Load results specified by their date in the filename (the name of the zip file in 
+    Load results specified by their date in the filename (the name of the zip file in
     labelling/export/NAME.zip without '.zip').
 
     Args:
@@ -73,3 +78,34 @@ def load_text_and_annotations_from_labelstudio(
         results.append((text, annotations))
 
     return results
+
+
+def export_text_to_docbin(text: List[str], output_path: str, spacy_model):
+    """
+    Export list of strings to a spacy DocBin.
+
+    Args:
+        text (List[str]): list of text to export
+        output_path (str): path to export docbin to. Should end in '.docbin'.
+        spacy_model
+    """
+
+    if not output_path.endswith(".docbin"):
+        logger.warning(
+            f"Output path for a DocBin should end in '.docbin'. This will not affect behaviour "
+            "but is the recommended extension for a DocBin serialised to disk."
+        )
+
+    logger.info("Adding text to DocBin")
+
+    docbin = spacy.tokens.DocBin(store_user_data=True)
+
+    for item in tqdm(text):
+        docbin.add(spacy_model(item))
+
+    docbin_data = docbin.to_bytes()
+
+    logger.info("Writing data to file")
+
+    with open(output_path, "wb") as f:
+        f.write(docbin_data)
