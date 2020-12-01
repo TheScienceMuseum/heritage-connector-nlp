@@ -4,7 +4,7 @@ Functions to help with Spacy things.
 
 import spacy
 import numpy as np
-from typing import List
+from typing import List, Union
 
 
 def correct_entity_boundaries(
@@ -67,16 +67,26 @@ def display_manual_annotations(text: str, annotations: List[tuple], **kwargs):
     spacy.displacy.render(data, style="ent", manual=True, **kwargs)
 
 
-def display_ner_annotations(text: str, spacy_model, **kwargs):
+def display_ner_annotations(
+    text_or_doc: Union[str, spacy.tokens.Doc], spacy_model=None, **kwargs
+):
     """
-    Use spacy.display to display annotations created using the NER component of spacy_model.
+    Use spacy.display to display annotations created using the NER component of spacy_model or a doc object.
     Kwargs are passed to `spacy.displacy.render`.
 
     Args:
-        text (str): 
+        text (Union[str, spacy.tokens.Doc]): string or Spacy Doc object. `spacy_model` is not required if Doc object is passed.
         spacy_model: must contain an NER component
+        spacy_doc (spacy.tokens.Doc): spacy Doc object
     """
 
-    assert "ner" in spacy_model.pipe_names
+    # assert ("ner" in spacy_model.pipe_names) or ("entity_ruler" in spacy_model.pipe_names)
 
-    spacy.displacy.render(spacy_model(text), style="ent", **kwargs)
+    if isinstance(text_or_doc, spacy.tokens.Doc):
+        spacy.displacy.render(text_or_doc, style="ent", **kwargs)
+    elif spacy_model:
+        spacy.displacy.render(spacy_model(text_or_doc), style="ent", **kwargs)
+    else:
+        raise ValueError(
+            "Please provide either a Spacy Doc or both a string and a spacy model."
+        )
