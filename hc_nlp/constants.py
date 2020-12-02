@@ -1,3 +1,5 @@
+### PATTERNS FOR FINDING ENTITIES OF SPECIFIC TYPES
+
 DATE_PATTERNS = [
     {"label": "DATE", "pattern": [{"SHAPE": "dddd"}, {"ORTH": "-"}, {"SHAPE": "dddd"}]},  # 1984 - 1990 | 1984-1990
     {"label": "DATE", "pattern": [{"ORTH": "c."}, {"SHAPE": "dddd"}]},  # c. 1200
@@ -11,7 +13,7 @@ DATE_PATTERNS = [
     {"label": "DATE", "pattern": [{"SHAPE": "dddd"}, {"ORTH": "to"}, {"SHAPE": "dddd"}]},  # 1805 to 1860
 ]
 
-###
+### USEFUL CONSTANTS
 
 ORDINALS = [
     "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th",
@@ -20,3 +22,19 @@ ORDINALS = [
     "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth",
     "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty-first"
 ]
+
+### SPACY TO HERITAGECONNECTOR ENTITY MAPPING
+### This allows us to map multiple Spacy NER classes to one class, in the case that we don't need the 
+### detail of specific classes. Also includes identity mappings. `set(SPACY_TO_HC_ENTITY_MAPPING.values())`
+### is the complete set of entities are using for the Heritage Connector.
+SPACY_TO_HC_ENTITY_MAPPING = {
+    "PERSON": "PERSON",
+    "ORG": "ORG",
+    "NORP": "NORP",
+    "GPE": "LOC",
+    "LOC": "LOC",
+    "PRODUCT": "OBJECT",
+    "WORK_OF_ART": "OBJECT",
+    "EVENT": "EVENT",
+    "DATE": "DATE",
+}

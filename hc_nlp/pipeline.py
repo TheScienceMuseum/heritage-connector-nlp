@@ -2,7 +2,9 @@ import spacy
 from spacy.pipeline import EntityRuler
 import time
 from typing import List
-from hc_nlp import constants
+from hc_nlp import constants, logging
+
+logger = logging.get_logger(__name__)
 
 
 class ThesaurusMatcher:
@@ -53,7 +55,7 @@ class ThesaurusMatcher:
         """
         Load thesaurus from disk and add to self.ruler
         """
-        print(f"Loading thesaurus from {self.thesaurus_path}")
+        logger.info(f"Loading thesaurus from {self.thesaurus_path}")
         other_pipes = [p for p in self.nlp.pipe_names if p != "tagger"]
 
         start = time.time()
@@ -61,7 +63,7 @@ class ThesaurusMatcher:
             self.ruler.from_disk(self.thesaurus_path)
 
         end = time.time()
-        print(f"{len(self.ruler)} term thesaurus imported in {int(end-start)}s")
+        logger.info(f"{len(self.ruler)} term thesaurus imported in {int(end-start)}s")
 
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
@@ -225,5 +227,45 @@ class DateMatcher(PatternMatcher):
         """
         doc = self._add_centuries_to_doc(doc)
         doc = self.ruler(doc)
+
+        return doc
+
+
+class MapEntityTypes:
+    def __init__(
+        self,
+        nlp,
+        mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
+        validate_mapping: bool = True,
+    ):
+        entities_missing_from_mapping = set(nlp.entity.labels) - set(mapping.keys())
+
+        if validate_mapping and (len(entities_missing_from_mapping) > 0):
+            logger.warning(
+                f"The following entity labels from the Spacy model are not in the provided mapping: {', '.join(list(entities_missing_from_mapping))}. They will not be changed."
+            )
+
+        self.mapping = mapping
+        self.nlp = nlp
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """
+        Replace entities in `Doc.ents` with new entities based on the mapping specified when initialising
+        the class instance.
+
+        Args:
+            doc (spacy.tokens.Doc
+
+        Returns:
+            spacy.tokens.Doc
+        """
+        new_ents = []
+        for ent in list(doc.ents):
+            new_ent = spacy.tokens.Span(
+                doc, ent.start, ent.end, label=self.mapping.get(ent.label_, ent.label_)
+            )
+            new_ents.append(new_ent)
+
+        doc.ents = new_ents
 
         return doc
