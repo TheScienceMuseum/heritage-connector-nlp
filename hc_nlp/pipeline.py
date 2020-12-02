@@ -13,7 +13,13 @@ class ThesaurusMatcher:
     `nlp.add_pipe`.
     """
 
-    def __init__(self, nlp, thesaurus_path: str, case_sensitive: bool):
+    def __init__(
+        self,
+        nlp,
+        thesaurus_path: str,
+        case_sensitive: bool,
+        overwrite_ents: bool = False,
+    ):
         """
         Initialise the ThesaurusMatcher. `thesaurus_path` must point to a .jsonl
         file with each line in the following format (with the `id` key optional):
@@ -39,6 +45,7 @@ class ThesaurusMatcher:
         self.nlp = nlp
         self.thesaurus_path = thesaurus_path
         self._add_thesaurus_to_ruler()
+        self.ruler.overwrite = overwrite_ents
 
     def _add_thesaurus_to_ruler(self):
         """
