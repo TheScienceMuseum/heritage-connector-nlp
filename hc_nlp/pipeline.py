@@ -1,6 +1,8 @@
 import spacy
 from spacy.pipeline import EntityRuler
 import time
+from typing import List
+from hc_nlp import constants
 
 
 class ThesaurusMatcher:
@@ -61,9 +63,9 @@ class ThesaurusMatcher:
         end = time.time()
         print(f"{len(self.ruler)} term thesaurus imported in {int(end-start)}s")
 
-    def __call__(self, doc):
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
-        Effectively inherits from EntityRuler behaviour.
+        Inherits from EntityRuler behaviour.
         """
         return self.ruler(doc)
 
@@ -134,5 +136,94 @@ class EntityFilter:
             )
 
         doc.ents = [ent for idx, ent in enumerate(doc.ents) if likely_entity[idx]]
+
+        return doc
+
+
+class PatternMatcher:
+    """
+    An EntityRuler object initiated with a pattern. Used for built-in `hc_nlp`
+    matchers.
+    """
+
+    def __init__(self, nlp, patterns: List[dict]):
+        """
+        Initialise the PatternMatcher.
+
+        Args:
+            nlp : Spacy model
+            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
+        """
+        self.ruler = EntityRuler(nlp)
+        self.ruler.add_patterns(patterns)
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """
+        Inherits from EntityRuler behaviour.
+        """
+        return self.ruler(doc)
+
+
+class DateMatcher(PatternMatcher):
+    def __init__(self, nlp):
+        super().__init__(nlp, constants.DATE_PATTERNS)
+
+    def _add_centuries_to_doc(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """
+        Adds dates with the format "... nth century" to `Doc.ents`. Does this by finding the word
+        'century' or 'centuries', checking that the previous word is an ordinal, and then returning all 
+        the immediate children of the token 'century'. It then checks for occurrences of "nth (and/or/to) 
+        mth centuries", as well as "AD" or "BC" after the word century/centuries.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+        for idx, token in enumerate(doc):
+            if token.lower_ in ["century", "centuries"]:
+                if (doc[idx - 1].lower_ in constants.ORDINALS) or all(
+                    [
+                        string in constants.ORDINALS
+                        for string in doc[idx - 1].lower_.split("-")
+                    ]
+                ):
+                    first_child = next(token.children)
+
+                    # allow "nth (and|to|or) mth" century
+                    if (doc[first_child.i - 1].lower_ in ["and", "to", "or"]) and (
+                        doc[first_child.i - 2].lower_ in constants.ORDINALS
+                    ):
+                        # go back to the first child of "nth"
+                        start = next(doc[first_child.i - 2].children).i
+                    else:
+                        start = first_child.i
+
+                    print([c for c in doc[first_child.i - 2].children])
+
+                    end = idx + 1
+
+                    # add on 'AD' or 'BC' if present
+                    if idx != len(doc) - 1:
+                        if doc[idx + 1].text.upper() in ["AD", "BC"]:
+                            end += 1
+
+                    date_entity = spacy.tokens.Span(doc, start, end, label="DATE")
+                    doc.ents = list(doc.ents) + [date_entity]
+        return doc
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """
+        Detects centuries then patterns from `constants.DATE_PATTERNS`.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+        doc = self._add_centuries_to_doc(doc)
+        doc = self.ruler(doc)
 
         return doc
