@@ -191,7 +191,11 @@ class DateMatcher(PatternMatcher):
                         for string in doc[idx - 1].lower_.split("-")
                     ]
                 ):
-                    first_child = next(token.children)
+                    try:
+                        first_child = next(token.children)
+                    except Exception:  #  noqa: E722
+                        # if the token has no children, use the ordinal token as first_child
+                        first_child = doc[idx - 1]
 
                     # allow "nth (and|to|or) mth" century
                     if (doc[first_child.i - 1].lower_ in ["and", "to", "or"]) and (
@@ -199,10 +203,14 @@ class DateMatcher(PatternMatcher):
                     ):
                         # go back to the first child of "nth"
                         start = next(doc[first_child.i - 2].children).i
+
+                        # if the child is after the 'nth' token, use the token instead of its child
+                        if start > doc[first_child.i - 2].i:
+                            start = doc[first_child.i - 2].i
                     else:
                         start = first_child.i
 
-                    print([c for c in doc[first_child.i - 2].children])
+                    # print([c for c in doc[first_child.i - 2].children])
 
                     end = idx + 1
 
