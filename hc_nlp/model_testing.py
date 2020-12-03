@@ -1,5 +1,5 @@
 import spacy
-from spacy.gold import GoldParse
+from spacy.training import Example
 from spacy.scorer import Scorer
 from typing import List, Tuple
 from collections import Counter
@@ -37,14 +37,24 @@ def test_ner(
         examples = load_text_and_annotations_from_labelstudio(results_set, spacy_model)
 
     scorer = Scorer()
+    results = []
     for input_, annot in examples:
-        doc_gold_text = spacy_model.make_doc(input_)
-        gold = GoldParse(doc_gold_text, entities=annot)
+        # doc_gold_text = spacy_model.make_doc(input_)
+        # print(annot)
         pred_value = spacy_model(input_)
-        scorer.score(pred_value, gold)
+        try:
+            gold = Example.from_dict(pred_value, {"entities": annot})
+        except Exception:
+            print("Failed: ", pred_value)
+            print(annot)
+            continue
+        results.append(gold)
+        # results.append(Example(pred_value, gold))
+        # scorer.score(pred_value, gold)
+    score_res = scorer.score(results)
 
     entity_measures = ["ents_p", "ents_r", "ents_f", "ents_per_type"]
-    ent_results = {k: scorer.scores[k] for k in entity_measures}
+    ent_results = {k: score_res[k] for k in entity_measures}
 
     label_count = _count_labels(examples)
     total_support = 0

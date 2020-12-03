@@ -1,0 +1,12 @@
+pre-commit
+pytest
+black
+coverage
+pytest-cov
+
+pandas
+spacy-nightly[transformers] --pre
+label-studio
+jupyterlab
+tqdm
+seaborn
