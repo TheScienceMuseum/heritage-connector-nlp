@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="heritage-connector-nlp",
+    name="hc-nlp",
     version="0.1.0",
     author="Science Museum Group",
     description="Heritage Connector NLP",
