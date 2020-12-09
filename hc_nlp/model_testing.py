@@ -38,10 +38,13 @@ def test_ner(
 
     scorer = Scorer()
     for input_, annot in examples:
-        doc_gold_text = spacy_model.make_doc(input_)
-        gold = GoldParse(doc_gold_text, entities=annot)
-        pred_value = spacy_model(input_)
-        scorer.score(pred_value, gold)
+        try:
+            doc_gold_text = spacy_model.make_doc(input_)
+            gold = GoldParse(doc_gold_text, entities=annot)
+            pred_value = spacy_model(input_)
+            scorer.score(pred_value, gold)
+        except Exception:
+            logger.warning(f"{input_} skipped")
 
     entity_measures = ["ents_p", "ents_r", "ents_f", "ents_per_type"]
     ent_results = {k: scorer.scores[k] for k in entity_measures}
