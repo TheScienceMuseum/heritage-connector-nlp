@@ -90,6 +90,7 @@ class EntityFilter:
         max_token_length: int = 1,
         remove_all_lower: bool = True,
         remove_all_upper: bool = True,
+        ent_labels_ignore: List[str] = [],
     ):
         """
         Initialise the EntityFilter.
@@ -101,10 +102,13 @@ class EntityFilter:
                 token are removed. Defaults to True.
             remove_all_upper (bool, optional): Entities with one or more uppercase
                 token are removed. Defaults to True.
+            ent_labels_ignore (List[str], optional): Entities with labels to ignore 
+                when making the corrections.
         """
         self.max_token_length = max_token_length
         self.remove_all_lower = remove_all_lower
         self.remove_all_upper = remove_all_upper
+        self.ent_labels_ignore = ent_labels_ignore
 
     def _is_unlikely_entity(self, token: spacy.tokens.Token) -> bool:
         """
@@ -133,9 +137,12 @@ class EntityFilter:
         """
         likely_entity = []
         for ent in doc.ents:
-            likely_entity.append(
-                any([not self._is_unlikely_entity(tok) for tok in ent])
-            )
+            if ent.label_.upper() in self.ent_labels_ignore:
+                likely_entity.append(True)
+            else:
+                likely_entity.append(
+                    any([not self._is_unlikely_entity(tok) for tok in ent])
+                )
 
         doc.ents = [ent for idx, ent in enumerate(doc.ents) if likely_entity[idx]]
 
