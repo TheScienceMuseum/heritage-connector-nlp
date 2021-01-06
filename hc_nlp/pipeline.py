@@ -258,18 +258,8 @@ class DateMatcher(PatternMatcher):
 @Language.factory("MapEntityTypes")
 class MapEntityTypes:
     def __init__(
-        self,
-        nlp,
-        name: str,
-        mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
-        validate_mapping: bool = True,
+        self, nlp, name: str, mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
     ):
-        # entities_missing_from_mapping = set(nlp.entity.labels) - set(mapping.keys())
-
-        # if validate_mapping and (len(entities_missing_from_mapping) > 0):
-        #     logger.warning(
-        #         f"The following entity labels from the Spacy model are not in the provided mapping: {', '.join(list(entities_missing_from_mapping))}. They will not be changed."
-        #     )
 
         self.mapping = mapping
         self.nlp = nlp
