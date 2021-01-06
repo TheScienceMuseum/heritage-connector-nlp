@@ -47,6 +47,20 @@ def correct_entity_boundaries(
     return new_annotations
 
 
+def remove_duplicate_annotations(annotations: List[tuple]) -> List[tuple]:
+    """
+    Removes duplicate annotations which cause the spaCy error '[E103] Trying to set conflicting doc.ents'.
+
+    Args:
+        annotations (List[tuple]): e.g. [(93, 104, 'PERSON'), (113, 129, 'ORG'), (93, 104, 'PERSON')]
+
+    Returns:
+        List[tuple]: corrected list of annotations
+    """
+
+    return list(set(annotations))
+
+
 def display_manual_annotations(text: str, annotations: List[tuple], **kwargs):
     """
     Use spacy.displacy to display manual annotations created using Label Studio.

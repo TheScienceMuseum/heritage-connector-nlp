@@ -5,7 +5,7 @@ from typing import List, Tuple
 from collections import Counter
 
 from hc_nlp.io import load_text_and_annotations_from_labelstudio
-from hc_nlp import logging
+from hc_nlp import logging, errors, spacy_helpers
 
 logger = logging.get_logger(__name__)
 
@@ -28,7 +28,8 @@ def test_ner(
         dict: keys ents_p; ents_r; ents_f; ents_per_type
     """
 
-    assert "ner" in spacy_model.pipe_names
+    if "ner" not in spacy_model.pipe_names:
+        errors.raise_spacy_component_does_not_exist("ner")
 
     if (results_set and examples) or (not results_set and not examples):
         raise ValueError("Please provide exactly one of `results_set` and `examples`.")
@@ -39,18 +40,16 @@ def test_ner(
     scorer = Scorer()
     results = []
     for input_, annot in examples:
-        # doc_gold_text = spacy_model.make_doc(input_)
-        # print(annot)
         pred_value = spacy_model(input_)
+        annot = spacy_helpers.remove_duplicate_annotations(annot)
         try:
             gold = Example.from_dict(pred_value, {"entities": annot})
-        except Exception:
+        except Exception as e:
             print("Failed: ", pred_value)
-            print(annot)
+            # print(annot)
+            print(e)
             continue
         results.append(gold)
-        # results.append(Example(pred_value, gold))
-        # scorer.score(pred_value, gold)
     score_res = scorer.score(results)
 
     entity_measures = ["ents_p", "ents_r", "ents_f", "ents_per_type"]
