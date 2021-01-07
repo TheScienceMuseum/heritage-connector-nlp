@@ -4,13 +4,14 @@ sys.path.append("..")
 
 from hc_nlp import io
 import spacy
+import os
 
 nlp = spacy.load("en_core_web_sm")
-test_data_date = "2020-11-25-11-43-02"
+test_data_path = os.path.join(os.path.dirname(__file__), "2020-11-25-11-43-02.zip")
 
 
 def test_load_raw_labelstudio_results():
-    data = io.load_raw_labelstudio_results(test_data_date)
+    data = io.load_raw_labelstudio_results(test_data_path)
 
     assert isinstance(data, list)
     assert isinstance(data[0], dict)
@@ -23,7 +24,7 @@ def test_load_text_and_annotations_from_labelstudio():
     Data should be in the format [[text, [(start1, end1, label1), (start2, end2, label2), ...]]]
     """
     data = io.load_text_and_annotations_from_labelstudio(
-        test_data_date, spacy_model=nlp, adjust_entity_boundaries=False
+        test_data_path, spacy_model=nlp, adjust_entity_boundaries=False
     )
 
     # test that all 'text' parts can be converted to string

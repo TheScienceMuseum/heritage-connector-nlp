@@ -1,9 +1,10 @@
 from hc_nlp import pipeline, constants, io
 import spacy
+import os
 
 nlp = spacy.load("en_core_web_sm")
 nlp_aug = spacy.load("en_core_web_sm")
-test_data_date = "2020-11-25-11-43-02"
+test_data_path = os.path.join(os.path.dirname(__file__), "2020-11-25-11-43-02.zip")
 
 
 def test_MapEntityTypes():
@@ -16,7 +17,7 @@ def test_MapEntityTypes():
     nlp_aug.add_pipe("MapEntityTypes")
 
     data = io.load_text_and_annotations_from_labelstudio(
-        test_data_date, spacy_model=nlp, adjust_entity_boundaries=False
+        test_data_path, spacy_model=nlp, adjust_entity_boundaries=False
     )
 
     for text, annotations in data[0:100]:

@@ -236,7 +236,14 @@ class DateMatcher(PatternMatcher):
                             end += 1
 
                     date_entity = spacy.tokens.Span(doc, start, end, label="DATE")
-                    doc.ents = list(doc.ents) + [date_entity]
+                    try:
+                        doc.ents = list(doc.ents) + [date_entity]
+                    except Exception:
+                        # TODO: check for overlap instead of just failing
+                        # TODO: handle the specific spaCy error
+                        logger.warn(
+                            f"Failed to add DATE entity {date_entity.text} in pos {(start, end)} to text {doc.text}"
+                        )
         return doc
 
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
