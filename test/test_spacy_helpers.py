@@ -17,3 +17,11 @@ def test_correct_entity_boundaries():
     )
 
     assert corrected_annotations == spacy_annotations
+
+
+def test_remove_duplicate_annotations():
+    annot = [(23, 30, "PERSON"), (32, 40, "GPE"), (23, 30, "PERSON")]
+
+    new_annot = spacy_helpers.remove_duplicate_annotations(annot)
+
+    assert set(new_annot) == set([(23, 30, "PERSON"), (32, 40, "GPE")])

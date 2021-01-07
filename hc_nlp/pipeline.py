@@ -1,5 +1,6 @@
 import spacy
 from spacy.pipeline import EntityRuler
+from spacy.language import Language
 import time
 from typing import List
 from hc_nlp import constants, logging
@@ -7,6 +8,7 @@ from hc_nlp import constants, logging
 logger = logging.get_logger(__name__)
 
 
+@Language.factory("ThesaurusMatcher")
 class ThesaurusMatcher:
     """
     The ThesaurusMatcher lets you add spans to `Doc.ents` using exact phrase
@@ -20,6 +22,7 @@ class ThesaurusMatcher:
     def __init__(
         self,
         nlp,
+        name: str,
         thesaurus_path: str,
         case_sensitive: bool,
         overwrite_ents: bool = False,
@@ -72,6 +75,7 @@ class ThesaurusMatcher:
         return self.ruler(doc)
 
 
+@Language.factory("EntityFilter")
 class EntityFilter:
     """
     The EntityFilter filters out any entities in `Doc.ents` that aren't likely to be
@@ -87,6 +91,8 @@ class EntityFilter:
 
     def __init__(
         self,
+        nlp,
+        name: str,
         max_token_length: int = 1,
         remove_all_lower: bool = True,
         remove_all_upper: bool = True,
@@ -105,6 +111,7 @@ class EntityFilter:
             ent_labels_ignore (List[str], optional): Entities with labels to ignore 
                 when making the corrections.
         """
+        self.nlp = nlp
         self.max_token_length = max_token_length
         self.remove_all_lower = remove_all_lower
         self.remove_all_upper = remove_all_upper
@@ -149,13 +156,14 @@ class EntityFilter:
         return doc
 
 
+@Language.factory("PatternMatcher")
 class PatternMatcher:
     """
     An EntityRuler object initiated with a pattern. Used for built-in `hc_nlp`
     matchers.
     """
 
-    def __init__(self, nlp, patterns: List[dict]):
+    def __init__(self, nlp, name: str, patterns: List[dict]):
         """
         Initialise the PatternMatcher.
 
@@ -173,9 +181,10 @@ class PatternMatcher:
         return self.ruler(doc)
 
 
+@Language.factory("DateMatcher")
 class DateMatcher(PatternMatcher):
-    def __init__(self, nlp):
-        super().__init__(nlp, constants.DATE_PATTERNS)
+    def __init__(self, nlp, name: str):
+        super().__init__(nlp, name, constants.DATE_PATTERNS)
 
     def _add_centuries_to_doc(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
@@ -253,19 +262,11 @@ class DateMatcher(PatternMatcher):
         return doc
 
 
+@Language.factory("MapEntityTypes")
 class MapEntityTypes:
     def __init__(
-        self,
-        nlp,
-        mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
-        validate_mapping: bool = True,
+        self, nlp, name: str, mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
     ):
-        entities_missing_from_mapping = set(nlp.entity.labels) - set(mapping.keys())
-
-        if validate_mapping and (len(entities_missing_from_mapping) > 0):
-            logger.warning(
-                f"The following entity labels from the Spacy model are not in the provided mapping: {', '.join(list(entities_missing_from_mapping))}. They will not be changed."
-            )
 
         self.mapping = mapping
         self.nlp = nlp

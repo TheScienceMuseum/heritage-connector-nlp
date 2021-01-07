@@ -1,11 +1,11 @@
 import spacy
-from spacy.gold import GoldParse
+from spacy.training import Example
 from spacy.scorer import Scorer
 from typing import List, Tuple
 from collections import Counter
 
 from hc_nlp.io import load_text_and_annotations_from_labelstudio
-from hc_nlp import logging
+from hc_nlp import logging, errors, spacy_helpers
 
 logger = logging.get_logger(__name__)
 
@@ -28,7 +28,8 @@ def test_ner(
         dict: keys ents_p; ents_r; ents_f; ents_per_type
     """
 
-    assert "ner" in spacy_model.pipe_names
+    if "ner" not in spacy_model.pipe_names:
+        errors.raise_spacy_component_does_not_exist("ner")
 
     if (results_set and examples) or (not results_set and not examples):
         raise ValueError("Please provide exactly one of `results_set` and `examples`.")
@@ -37,17 +38,22 @@ def test_ner(
         examples = load_text_and_annotations_from_labelstudio(results_set, spacy_model)
 
     scorer = Scorer()
+    results = []
     for input_, annot in examples:
+        pred_value = spacy_model(input_)
+        annot = spacy_helpers.remove_duplicate_annotations(annot)
         try:
-            doc_gold_text = spacy_model.make_doc(input_)
-            gold = GoldParse(doc_gold_text, entities=annot)
-            pred_value = spacy_model(input_)
-            scorer.score(pred_value, gold)
-        except Exception:
-            logger.warning(f"{input_} skipped")
+            gold = Example.from_dict(pred_value, {"entities": annot})
+        except Exception as e:
+            print("Failed: ", pred_value)
+            # print(annot)
+            print(e)
+            continue
+        results.append(gold)
+    score_res = scorer.score(results)
 
     entity_measures = ["ents_p", "ents_r", "ents_f", "ents_per_type"]
-    ent_results = {k: scorer.scores[k] for k in entity_measures}
+    ent_results = {k: score_res[k] for k in entity_measures}
 
     label_count = _count_labels(examples)
     total_support = 0

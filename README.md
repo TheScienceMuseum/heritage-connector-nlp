@@ -4,12 +4,13 @@ Text processing for the [Heritage Connector](https://github.com/TheScienceMuseum
 
 **--- IN DEVELOPMENT ---**
 
+(note about spaCy: the master branch and all releases after 0.2.1 use spaCy v3, which is currently in nightly and not meant for production use.)
+
 Includes:
 
 - information extraction (NER, NEL, relation classification)
 - labelling ([Label Studio](https://labelstud.io/))
 - test suite for models
-
 
 ## Usage
 
