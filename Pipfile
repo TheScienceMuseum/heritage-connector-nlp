@@ -12,11 +12,12 @@ pytest-cov = "*"
 
 [packages]
 pandas = "*"
-spacy = "*"
 label-studio = "*"
 jupyterlab = "*"
 tqdm = "*"
 seaborn = "*"
+spacy-nightly = "*"
+spacy-transformers = "*"
 
 [requires]
 python_version = "3.7"
