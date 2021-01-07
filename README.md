@@ -12,8 +12,6 @@ Includes:
 - labelling ([Label Studio](https://labelstud.io/))
 - test suite for models
 
-
-
 ## Usage
 
 ### Label Studio
