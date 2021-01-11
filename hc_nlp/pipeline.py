@@ -46,7 +46,7 @@ def thesaurus_matcher(
     return ruler
 
 
-@Language.factory("EntityFilter")
+@Language.factory("entity_filter")
 class EntityFilter:
     """
     The EntityFilter filters out any entities in `Doc.ents` that aren't likely to be
@@ -230,7 +230,7 @@ class DateMatcher:
         return doc
 
 
-@Language.factory("MapEntityTypes")
+@Language.factory("map_entity_types")
 class MapEntityTypes:
     def __init__(
         self, nlp, name: str, mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
