@@ -37,7 +37,7 @@ def test_MapEntityTypes():
 
 def test_thesaurus_matcher():
     """
-    Test that pipeline can be created and imported to a new nlp object.
+    Test that the component can be created and imported into a new nlp object.
     """
 
     nlp = spacy.blank("en")
@@ -46,3 +46,29 @@ def test_thesaurus_matcher():
     nlp.add_pipe("thesaurus_matcher", config={"thesaurus_path": thesaurus_path})
 
     assert "thesaurus_matcher" in nlp.pipe_names
+
+
+def test_pattern_matcher():
+    """
+    Test that the component can be created and imported into a new nlp object.
+    """
+
+    nlp = spacy.blank("en")
+    nlp.add_pipe("pattern_matcher", config={"patterns": constants.DATE_PATTERNS})
+
+    assert "pattern_matcher" in nlp.pipe_names
+
+
+def test_date_matcher():
+    """
+    Test that the component can be created and imported into a new nlp object.
+    """
+
+    nlp = spacy.blank("en")
+    nlp.add_pipe("date_matcher")
+
+    assert "date_matcher" in nlp.pipe_names
+
+    # doc = nlp("someone was born in the second to first centuries BC")
+    # assert len(doc.ents) == 1
+    # assert [ent.label_ for ent in doc.ents][0] == "DATE"

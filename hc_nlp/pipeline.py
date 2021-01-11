@@ -127,35 +127,36 @@ class EntityFilter:
         return doc
 
 
-@Language.factory("PatternMatcher")
-class PatternMatcher:
+@Language.factory("pattern_matcher")
+def pattern_matcher(nlp, name: str, patterns: List[dict]):
     """
-    An EntityRuler object initiated with a pattern. Used for built-in `hc_nlp`
-    matchers.
+    Create an EntityRuler object loaded with a list of patterns.
+
+    Args:
+        nlp : Spacy model
+        patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
+
+    Returns:
+        Spacy EntityRuler component
     """
+    ruler = EntityRuler(nlp)
+    ruler.add_patterns(patterns)
 
-    def __init__(self, nlp, name: str, patterns: List[dict]):
-        """
-        Initialise the PatternMatcher.
+    return ruler
 
-        Args:
-            nlp : Spacy model
-            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
-        """
+
+@Language.factory("date_matcher")
+def date_matcher(nlp, name) -> spacy.tokens.Doc:
+    """
+    A component designed to match dates through pattern matching and rules for detecting centuries.
+    """
+    return DateMatcher(nlp)
+
+
+class DateMatcher:
+    def __init__(self, nlp):
         self.ruler = EntityRuler(nlp)
-        self.ruler.add_patterns(patterns)
-
-    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
-        """
-        Inherits from EntityRuler behaviour.
-        """
-        return self.ruler(doc)
-
-
-@Language.factory("DateMatcher")
-class DateMatcher(PatternMatcher):
-    def __init__(self, nlp, name: str):
-        super().__init__(nlp, name, constants.DATE_PATTERNS)
+        self.ruler.add_patterns(constants.DATE_PATTERNS)
 
     def _add_centuries_to_doc(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
@@ -163,10 +164,8 @@ class DateMatcher(PatternMatcher):
         'century' or 'centuries', checking that the previous word is an ordinal, and then returning all 
         the immediate children of the token 'century'. It then checks for occurrences of "nth (and/or/to) 
         mth centuries", as well as "AD" or "BC" after the word century/centuries.
-
         Args:
             doc (spacy.tokens.Doc)
-
         Returns:
             spacy.tokens.Doc
         """
@@ -180,7 +179,7 @@ class DateMatcher(PatternMatcher):
                 ):
                     try:
                         first_child = next(token.children)
-                    except Exception:  #  noqa: E722
+                    except Exception:  # noqa: E722
                         # if the token has no children, use the ordinal token as first_child
                         first_child = doc[idx - 1]
 
@@ -220,10 +219,8 @@ class DateMatcher(PatternMatcher):
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
         Detects centuries then patterns from `constants.DATE_PATTERNS`.
-
         Args:
             doc (spacy.tokens.Doc)
-
         Returns:
             spacy.tokens.Doc
         """
