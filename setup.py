@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="hc-nlp",
-    version="0.3.0",
+    version="0.3.1",
     author="Science Museum Group",
     description="Heritage Connector NLP",
     long_description=long_description,
@@ -18,6 +18,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.6",
-    install_requires=["spacy-nightly>=3.0.0", "spacy-transformers>=1.0.0"],
+    install_requires=["spacy-nightly==3.0.0rc2", "spacy-transformers==1.0.0rc0"],
     packages=["hc_nlp"],
 )
