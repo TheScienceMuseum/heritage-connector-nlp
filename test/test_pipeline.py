@@ -33,3 +33,16 @@ def test_MapEntityTypes():
                 for ent, ent_aug in zip(doc_entlabels, doc_aug_entlabels)
             ]
         )
+
+
+def test_thesaurus_matcher():
+    """
+    Test that pipeline can be created and imported to a new nlp object.
+    """
+
+    nlp = spacy.blank("en")
+    thesaurus_path = os.path.join(os.path.dirname(__file__), "test_thesaurus.jsonl")
+
+    nlp.add_pipe("thesaurus_matcher", config={"thesaurus_path": thesaurus_path})
+
+    assert "thesaurus_matcher" in nlp.pipe_names

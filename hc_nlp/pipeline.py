@@ -8,9 +8,16 @@ from hc_nlp import constants, logging
 logger = logging.get_logger(__name__)
 
 
-@Language.factory("ThesaurusMatcher")
-class ThesaurusMatcher:
+@Language.factory(
+    "thesaurus_matcher",
+    default_config={"overwrite_ents": False, "case_sensitive": False},
+)
+def thesaurus_matcher(
+    nlp, name, thesaurus_path: str, case_sensitive: bool, overwrite_ents: bool
+):
     """
+    Factory function for a ThesaurusMatcher.
+
     The ThesaurusMatcher lets you add spans to `Doc.ents` using exact phrase
     matches from an imported phrasebook (Thesaurus). It can be combined with 
     the statistical `EntityRecognizer` to boost accuracy, or used on its own 
@@ -19,60 +26,24 @@ class ThesaurusMatcher:
     `nlp.add_pipe`.
     """
 
-    def __init__(
-        self,
-        nlp,
-        name: str,
-        thesaurus_path: str,
-        case_sensitive: bool,
-        overwrite_ents: bool = False,
-    ):
-        """
-        Initialise the ThesaurusMatcher. `thesaurus_path` must point to a .jsonl
-        file with each line in the following format (with the `id` key optional):
+    logger.info(f"Loading thesaurus from {thesaurus_path}")
 
-        ```
-        {
-            "label": "<entity label>",
-            "pattern": "<text to match>",
-            "id": "<ID which the above text unambiguously refers to. Optional.>",
-        }
-        ```
+    start = time.time()
 
-        Args:
-            nlp: spacy model
-            thesaurus_path (str): path to the thesaurus
-            case_sensitive (bool): [description]
-        """
-        if case_sensitive:
-            self.ruler = EntityRuler(nlp)
-        else:
-            self.ruler = EntityRuler(nlp, phrase_matcher_attr="LOWER")
+    # set config for new entityruler object
+    if case_sensitive:
+        ruler = EntityRuler(nlp, overwrite_ents=overwrite_ents).from_disk(
+            thesaurus_path
+        )
+    else:
+        ruler = EntityRuler(
+            nlp, overwrite_ents=overwrite_ents, phrase_matcher_attr="LOWER"
+        ).from_disk(thesaurus_path)
 
-        self.nlp = nlp
-        self.thesaurus_path = thesaurus_path
-        self._add_thesaurus_to_ruler()
-        self.ruler.overwrite = overwrite_ents
+    end = time.time()
+    logger.info(f"{len(ruler)} term thesaurus imported in {int(end-start)}s")
 
-    def _add_thesaurus_to_ruler(self):
-        """
-        Load thesaurus from disk and add to self.ruler
-        """
-        logger.info(f"Loading thesaurus from {self.thesaurus_path}")
-        other_pipes = [p for p in self.nlp.pipe_names if p != "tagger"]
-
-        start = time.time()
-        with self.nlp.disable_pipes(*other_pipes):
-            self.ruler.from_disk(self.thesaurus_path)
-
-        end = time.time()
-        logger.info(f"{len(self.ruler)} term thesaurus imported in {int(end-start)}s")
-
-    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
-        """
-        Inherits from EntityRuler behaviour.
-        """
-        return self.ruler(doc)
+    return ruler
 
 
 @Language.factory("EntityFilter")
