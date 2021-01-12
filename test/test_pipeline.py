@@ -14,7 +14,7 @@ def test_MapEntityTypes():
     mapping = constants.SPACY_TO_HC_ENTITY_MAPPING
     mapping_inputs = set(mapping.keys())
 
-    nlp_aug.add_pipe("MapEntityTypes")
+    nlp_aug.add_pipe("map_entity_types")
 
     data = io.load_text_and_annotations_from_labelstudio(
         test_data_path, spacy_model=nlp, adjust_entity_boundaries=False
