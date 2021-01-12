@@ -27,18 +27,21 @@ def thesaurus_matcher(
     """
 
     logger.info(f"Loading thesaurus from {thesaurus_path}")
+    other_pipes = [p for p in nlp.pipe_names if p != "tagger"]
 
     start = time.time()
 
     # set config for new entityruler object
     if case_sensitive:
-        ruler = EntityRuler(nlp, overwrite_ents=overwrite_ents).from_disk(
-            thesaurus_path
-        )
+        with nlp.disable_pipes(*other_pipes):
+            ruler = EntityRuler(nlp, overwrite_ents=overwrite_ents).from_disk(
+                thesaurus_path
+            )
     else:
-        ruler = EntityRuler(
-            nlp, overwrite_ents=overwrite_ents, phrase_matcher_attr="LOWER"
-        ).from_disk(thesaurus_path)
+        with nlp.disable_pipes(*other_pipes):
+            ruler = EntityRuler(
+                nlp, overwrite_ents=overwrite_ents, phrase_matcher_attr="LOWER"
+            ).from_disk(thesaurus_path)
 
     end = time.time()
     logger.info(f"{len(ruler)} term thesaurus imported in {int(end-start)}s")
