@@ -130,7 +130,6 @@ class EntityFilter:
         return doc
 
 
-@Language.factory("pattern_matcher")
 def pattern_matcher(nlp, name: str, patterns: List[dict]):
     """
     Create an EntityRuler object loaded with a list of patterns.
@@ -148,18 +147,38 @@ def pattern_matcher(nlp, name: str, patterns: List[dict]):
     return ruler
 
 
-@Language.factory("date_matcher")
-def date_matcher(nlp, name) -> spacy.tokens.Doc:
+@Language.factory("pattern_matcher")
+class PatternMatcher:
     """
-    A component designed to match dates through pattern matching and rules for detecting centuries.
+    An EntityRuler object initiated with a pattern. Used for built-in `hc_nlp`
+    matchers.
     """
-    return DateMatcher(nlp)
 
+    def __init__(self, nlp, name: str, patterns: List[dict]):
+        """
+        Initialise the PatternMatcher.
 
-class DateMatcher:
-    def __init__(self, nlp):
+        Args:
+            nlp : Spacy model
+            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
+        """
         self.ruler = EntityRuler(nlp)
-        self.ruler.add_patterns(constants.DATE_PATTERNS)
+        self.ruler.add_patterns(patterns)
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """
+        Inherits from EntityRuler behaviour.
+        """
+        return self.ruler(doc)
+
+
+@Language.factory("date_matcher")
+class DateMatcher(PatternMatcher):
+    def __init__(self, nlp, name):
+        # TODO: inherit from pattern_matcher
+        super().__init__(nlp, name, constants.DATE_PATTERNS)
+        # self.ruler = EntityRuler(nlp)
+        # self.ruler.add_patterns(constants.DATE_PATTERNS)
 
     def _add_centuries_to_doc(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
