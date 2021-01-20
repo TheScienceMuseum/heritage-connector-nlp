@@ -18,6 +18,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.6",
-    install_requires=["spacy-nightly==3.0.0rc2", "spacy-transformers==1.0.0rc0"],
+    install_requires=["spacy-nightly==3.0.0rc3", "spacy-transformers==1.0.0rc2"],
     packages=["hc_nlp"],
 )
