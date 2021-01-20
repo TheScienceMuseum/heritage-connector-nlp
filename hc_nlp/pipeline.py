@@ -33,12 +33,12 @@ def thesaurus_matcher(
 
     # set config for new entityruler object
     if case_sensitive:
-        with nlp.disable_pipes(*other_pipes):
+        with nlp.select_pipes(disable=other_pipes):
             ruler = EntityRuler(nlp, overwrite_ents=overwrite_ents).from_disk(
                 thesaurus_path
             )
     else:
-        with nlp.disable_pipes(*other_pipes):
+        with nlp.select_pipes(disable=other_pipes):
             ruler = EntityRuler(
                 nlp, overwrite_ents=overwrite_ents, phrase_matcher_attr="LOWER"
             ).from_disk(thesaurus_path)
