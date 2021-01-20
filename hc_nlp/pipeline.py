@@ -135,6 +135,25 @@ class EntityFilter:
 
         return newdoc
 
+    def _remove_n_years_from_date_entities(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        """
+        Removes any DATE entities with the format 'n years'
+        """
+
+        newdoc = copy.deepcopy(doc)
+
+        for ent in newdoc.ents:
+            if (
+                (ent.label_ == "DATE")
+                and ("years" in ent.text.lower())
+                and ent[0].like_num
+            ):
+                newdoc.ents = [e for e in newdoc.ents if e != ent]
+
+        return newdoc
+
     def _add_royal_title_to_person_entities(
         self, doc: spacy.tokens.Doc
     ) -> spacy.tokens.Doc:
@@ -169,6 +188,7 @@ class EntityFilter:
 
         doc = self._remove_the_year_from_date_entities(doc)
         doc = self._add_royal_title_to_person_entities(doc)
+        doc = self._remove_n_years_from_date_entities(doc)
 
         return doc
 
