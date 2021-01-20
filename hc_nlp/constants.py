@@ -24,6 +24,10 @@ ORDINALS = [
     "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty-first"
 ]
 
+ROYAL_TITLES = [
+    "king", "queen", "prince", "princess", "emperor", "empress"
+]
+
 ### SPACY TO HERITAGECONNECTOR ENTITY MAPPING
 ### This allows us to map multiple Spacy NER classes to one class, in the case that we don't need the 
 ### detail of specific classes. Also includes identity mappings. `set(SPACY_TO_HC_ENTITY_MAPPING.values())`

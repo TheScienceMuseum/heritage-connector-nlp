@@ -135,6 +135,22 @@ class EntityFilter:
 
         return newdoc
 
+    def _add_royal_title_to_person_entities(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        newdoc = copy.deepcopy(doc)
+
+        for ent in newdoc.ents:
+            if ent.label_ == "PERSON":
+                if newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES:
+                    new_ent = spacy.tokens.Span(
+                        newdoc, ent.start - 1, ent.end, label="PERSON"
+                    )
+
+                    newdoc.ents = [new_ent if e == ent else e for e in newdoc.ents]
+
+        return newdoc
+
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
         Filter out entities which contain one or more token that doesn't look like
@@ -152,6 +168,7 @@ class EntityFilter:
         doc.ents = [ent for idx, ent in enumerate(doc.ents) if likely_entity[idx]]
 
         doc = self._remove_the_year_from_date_entities(doc)
+        doc = self._add_royal_title_to_person_entities(doc)
 
         return doc
 
