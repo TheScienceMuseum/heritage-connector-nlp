@@ -14,6 +14,12 @@ DATE_PATTERNS = [
     {"label": "DATE", "pattern": [{"SHAPE": "dddd"}, {"ORTH": "to"}, {"SHAPE": "dddd"}]},  # 1805 to 1860
 ]
 
+COLLECTION_NAME_PATTERNS = [
+    # TODO: use 'POS': 'PROPN' here instead of IS_TITLE: True for better detection of proper nouns
+    {"label": "ORG", "pattern": [{'IS_TITLE': True, 'OP': '+'}, {'LOWER': 'collection'}]},  # Sforza collection
+    {"label": "ORG", "pattern": [{'IS_TITLE': True, 'OP': '+'}, {'LOWER': 'archive'}]},  # Charles Urban archive
+]
+
 ### USEFUL CONSTANTS
 
 ORDINALS = [
@@ -22,6 +28,10 @@ ORDINALS = [
     "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth",
     "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth",
     "seventeenth", "eighteenth", "nineteenth", "twentieth", "twenty-first"
+]
+
+ROYAL_TITLES = [
+    "king", "queen", "prince", "princess", "emperor", "empress"
 ]
 
 ### SPACY TO HERITAGECONNECTOR ENTITY MAPPING

@@ -2,6 +2,7 @@ import spacy
 from spacy.pipeline import EntityRuler
 from spacy.language import Language
 import time
+import copy
 from typing import List
 from hc_nlp import constants, logging
 
@@ -33,12 +34,12 @@ def thesaurus_matcher(
 
     # set config for new entityruler object
     if case_sensitive:
-        with nlp.disable_pipes(*other_pipes):
+        with nlp.select_pipes(disable=other_pipes):
             ruler = EntityRuler(nlp, overwrite_ents=overwrite_ents).from_disk(
                 thesaurus_path
             )
     else:
-        with nlp.disable_pipes(*other_pipes):
+        with nlp.select_pipes(disable=other_pipes):
             ruler = EntityRuler(
                 nlp, overwrite_ents=overwrite_ents, phrase_matcher_attr="LOWER"
             ).from_disk(thesaurus_path)
@@ -111,6 +112,64 @@ class EntityFilter:
 
         return False
 
+    def _remove_the_year_from_date_entities(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        """
+        Removes phrase 'the year' from the start of any DATE entities.
+        """
+
+        newdoc = copy.deepcopy(doc)
+
+        for ent in newdoc.ents:
+            if (ent.label_ == "DATE") and ent.text.lower().startswith("the year"):
+                if ent.text.lower() == "the year":
+                    # remove entire entity
+                    newdoc.ents = [e for e in newdoc.ents if e != ent]
+                else:
+                    new_ent = spacy.tokens.Span(
+                        newdoc, ent.start + 2, ent.end, label="DATE"
+                    )
+
+                    newdoc.ents = [new_ent if e == ent else e for e in newdoc.ents]
+
+        return newdoc
+
+    def _remove_n_years_from_date_entities(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        """
+        Removes any DATE entities with the format 'n years'
+        """
+
+        newdoc = copy.deepcopy(doc)
+
+        for ent in newdoc.ents:
+            if (
+                (ent.label_ == "DATE")
+                and ("years" in ent.text.lower())
+                and ent[0].like_num
+            ):
+                newdoc.ents = [e for e in newdoc.ents if e != ent]
+
+        return newdoc
+
+    def _add_royal_title_to_person_entities(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        newdoc = copy.deepcopy(doc)
+
+        for ent in newdoc.ents:
+            if ent.label_ == "PERSON":
+                if newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES:
+                    new_ent = spacy.tokens.Span(
+                        newdoc, ent.start - 1, ent.end, label="PERSON"
+                    )
+
+                    newdoc.ents = [new_ent if e == ent else e for e in newdoc.ents]
+
+        return newdoc
+
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
         Filter out entities which contain one or more token that doesn't look like
@@ -126,6 +185,10 @@ class EntityFilter:
                 )
 
         doc.ents = [ent for idx, ent in enumerate(doc.ents) if likely_entity[idx]]
+
+        doc = self._remove_the_year_from_date_entities(doc)
+        doc = self._add_royal_title_to_person_entities(doc)
+        doc = self._remove_n_years_from_date_entities(doc)
 
         return doc
 
