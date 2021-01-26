@@ -20,10 +20,10 @@ def thesaurus_matcher(
     Factory function for a ThesaurusMatcher.
 
     The ThesaurusMatcher lets you add spans to `Doc.ents` using exact phrase
-    matches from an imported phrasebook (Thesaurus). It can be combined with 
-    the statistical `EntityRecognizer` to boost accuracy, or used on its own 
-    to implement a purely rule-based entity recognition system. After 
-    initialization, the component is typically added to the pipeline using 
+    matches from an imported phrasebook (Thesaurus). It can be combined with
+    the statistical `EntityRecognizer` to boost accuracy, or used on its own
+    to implement a purely rule-based entity recognition system. After
+    initialization, the component is typically added to the pipeline using
     `nlp.add_pipe`.
     """
 
@@ -60,7 +60,7 @@ class EntityFilter:
     - contains 3+ consecutive digits -> maybe entity (could be a date)
     - all lowercase or all UPPERCASE -> not entity
 
-    These rules are applied so that if any of the tokens in an entity span don't look 
+    These rules are applied so that if any of the tokens in an entity span don't look
     like entities, the whole span will be removed from `Doc.ents`.
     """
 
@@ -79,11 +79,11 @@ class EntityFilter:
         Args:
             max_token_length (int, optional): Entities with tokens with length less
                 than or equal to this will be removed from Doc.ents. Defaults to 1.
-            remove_all_lower (bool, optional): Entities with one or more lowercase 
+            remove_all_lower (bool, optional): Entities with one or more lowercase
                 token are removed. Defaults to True.
             remove_all_upper (bool, optional): Entities with one or more uppercase
                 token are removed. Defaults to True.
-            ent_labels_ignore (List[str], optional): Entities with labels to ignore 
+            ent_labels_ignore (List[str], optional): Entities with labels to ignore
                 when making the corrections.
         """
         self.nlp = nlp
@@ -119,7 +119,7 @@ class EntityFilter:
         Removes phrase 'the year' from the start of any DATE entities.
         """
 
-        newdoc = copy.deepcopy(doc)
+        newdoc = copy.copy(doc)
 
         for ent in newdoc.ents:
             if (ent.label_ == "DATE") and ent.text.lower().startswith("the year"):
@@ -142,7 +142,7 @@ class EntityFilter:
         Removes any DATE entities with the format 'n years'
         """
 
-        newdoc = copy.deepcopy(doc)
+        newdoc = copy.copy(doc)
 
         for ent in newdoc.ents:
             if (
@@ -157,7 +157,7 @@ class EntityFilter:
     def _add_royal_title_to_person_entities(
         self, doc: spacy.tokens.Doc
     ) -> spacy.tokens.Doc:
-        newdoc = copy.deepcopy(doc)
+        newdoc = copy.copy(doc)
 
         for ent in newdoc.ents:
             if ent.label_ == "PERSON":
@@ -199,7 +199,7 @@ def pattern_matcher(nlp, name: str, patterns: List[dict]):
 
     Args:
         nlp : Spacy model
-        patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
+        patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
 
     Returns:
         Spacy EntityRuler component
@@ -223,7 +223,7 @@ class PatternMatcher:
 
         Args:
             nlp : Spacy model
-            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler 
+            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
         """
         self.ruler = EntityRuler(nlp)
         self.ruler.add_patterns(patterns)
@@ -246,8 +246,8 @@ class DateMatcher(PatternMatcher):
     def _add_centuries_to_doc(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         """
         Adds dates with the format "... nth century" to `Doc.ents`. Does this by finding the word
-        'century' or 'centuries', checking that the previous word is an ordinal, and then returning all 
-        the immediate children of the token 'century'. It then checks for occurrences of "nth (and/or/to) 
+        'century' or 'centuries', checking that the previous word is an ordinal, and then returning all
+        the immediate children of the token 'century'. It then checks for occurrences of "nth (and/or/to)
         mth centuries", as well as "AD" or "BC" after the word century/centuries.
         Args:
             doc (spacy.tokens.Doc)
@@ -318,7 +318,10 @@ class DateMatcher(PatternMatcher):
 @Language.factory("map_entity_types")
 class MapEntityTypes:
     def __init__(
-        self, nlp, name: str, mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
+        self,
+        nlp,
+        name: str,
+        mapping: dict = constants.SPACY_TO_HC_ENTITY_MAPPING,
     ):
 
         self.mapping = mapping
