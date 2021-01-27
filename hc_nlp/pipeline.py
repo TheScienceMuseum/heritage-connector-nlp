@@ -281,7 +281,7 @@ class DateMatcher(PatternMatcher):
                             # if the child is after the 'nth' token, use the token instead of its child
                             if start > doc[first_child.i - 2].i:
                                 start = doc[first_child.i - 2].i
-                        except ValueError:
+                        except Exception:
                             # if couldn't find children of 'nth', then just take 'nth' as start
                             start = doc[first_child.i - 2].i
                     else:
