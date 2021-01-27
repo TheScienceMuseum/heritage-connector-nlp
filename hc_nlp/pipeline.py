@@ -274,11 +274,15 @@ class DateMatcher(PatternMatcher):
                     if (doc[first_child.i - 1].lower_ in ["and", "to", "or"]) and (
                         doc[first_child.i - 2].lower_ in constants.ORDINALS
                     ):
-                        # go back to the first child of "nth"
-                        start = next(doc[first_child.i - 2].children).i
+                        try:
+                            # go back to the first child of "nth"
+                            start = next(doc[first_child.i - 2].children).i
 
-                        # if the child is after the 'nth' token, use the token instead of its child
-                        if start > doc[first_child.i - 2].i:
+                            # if the child is after the 'nth' token, use the token instead of its child
+                            if start > doc[first_child.i - 2].i:
+                                start = doc[first_child.i - 2].i
+                        except ValueError:
+                            # if couldn't find children of 'nth', then just take 'nth' as start
                             start = doc[first_child.i - 2].i
                     else:
                         start = first_child.i
