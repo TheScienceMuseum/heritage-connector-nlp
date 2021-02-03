@@ -354,3 +354,69 @@ class MapEntityTypes:
         doc.ents = new_ents
 
         return doc
+
+
+@Language.factory("document_normalizer")
+class DocumentNormalizer:
+    def __init__(self, nlp, name):
+        self.nlp = nlp
+
+    def _join_consecutive_ent_pairs_with_same_label(
+        self, doc: spacy.tokens.Doc, exclude_types: List[str] = []
+    ) -> spacy.tokens.Doc:
+        """Join entities which occupy consecutive tokens and have the same label.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc: amended doc
+        """
+        idx = 0
+        new_ents = []
+
+        while idx + 1 < len(doc.ents):
+            if doc.ents[idx].end >= len(doc):
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_ent = doc.ents[idx + 1]
+            next_token = doc[curr_ent.end]
+
+            if curr_ent.label_ == next_token.ent_type_:
+                # search for continuation of the same label for future tokens, starting with the one after
+                # the next token. For each token with a matching label found, increment the offset value by one.
+                # This is then used to set the end of joined_ent and increment the value of idx.
+                next_token_offset = 0
+                while (
+                    curr_ent.label_
+                    == doc[curr_ent.end + 1 + next_token_offset].ent_type_
+                ):
+                    next_token_offset += 1
+
+                    if (curr_ent.end + 1 + next_token_offset) >= len(doc):
+                        break
+
+                joined_ent = spacy.tokens.Span(
+                    doc,
+                    curr_ent.start,
+                    curr_ent.end + len(next_ent) + next_token_offset,
+                    curr_ent.label_,
+                )
+                new_ents.append(joined_ent)
+
+                idx += 2 + next_token_offset
+
+            else:
+                new_ents.append(curr_ent)
+                idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        newdoc = self._join_consecutive_ent_pairs_with_same_label(doc)
+
+        return newdoc

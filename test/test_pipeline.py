@@ -72,3 +72,24 @@ def test_date_matcher():
     # doc = nlp("someone was born in the second to first centuries BC")
     # assert len(doc.ents) == 1
     # assert [ent.label_ for ent in doc.ents][0] == "DATE"
+
+
+def test_document_normalizer_join_consecutive_ent_pairs_with_same_label():
+    nlp = spacy.blank("en")
+
+    doc = nlp("London Victoria Station is often plagued by delayed trains")
+    doc.ents = [
+        spacy.tokens.Span(doc, 0, 1, "FAC"),
+        spacy.tokens.Span(doc, 1, 2, "FAC"),
+        spacy.tokens.Span(doc, 2, 3, "FAC"),
+    ]
+
+    # NOTE: this is not how it would be used in practice but allows us to just test one method
+    d_norm = pipeline.DocumentNormalizer(nlp, "document_normalizer")
+    doc_modified = d_norm._join_consecutive_ent_pairs_with_same_label(doc)
+
+    assert len(doc_modified.ents) == 1
+    assert doc_modified.ents[0].start == 0
+    assert doc_modified.ents[0].end == 3
+    assert doc_modified.ents[0].label_ == "FAC"
+    assert doc_modified.ents[0].text == "London Victoria Station"
