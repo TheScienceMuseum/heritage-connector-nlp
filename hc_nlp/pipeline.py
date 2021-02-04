@@ -3,7 +3,7 @@ from spacy.pipeline import EntityRuler
 from spacy.language import Language
 import time
 import copy
-from typing import List
+from typing import Sequence
 from hc_nlp import constants, logging
 
 logger = logging.get_logger(__name__)
@@ -71,7 +71,7 @@ class EntityFilter:
         max_token_length: int = 1,
         remove_all_lower: bool = True,
         remove_all_upper: bool = True,
-        ent_labels_ignore: List[str] = [],
+        ent_labels_ignore: Sequence[str] = [],
     ):
         """
         Initialise the EntityFilter.
@@ -83,7 +83,7 @@ class EntityFilter:
                 token are removed. Defaults to True.
             remove_all_upper (bool, optional): Entities with one or more uppercase
                 token are removed. Defaults to True.
-            ent_labels_ignore (List[str], optional): Entities with labels to ignore
+            ent_labels_ignore (Sequence[str], optional): Entities with labels to ignore
                 when making the corrections.
         """
         self.nlp = nlp
@@ -195,13 +195,13 @@ class EntityFilter:
         return doc
 
 
-def pattern_matcher(nlp, name: str, patterns: List[dict]):
+def pattern_matcher(nlp, name: str, patterns: Sequence[dict]):
     """
     Create an EntityRuler object loaded with a list of patterns.
 
     Args:
         nlp : Spacy model
-        patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
+        patterns (Sequence[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
 
     Returns:
         Spacy EntityRuler component
@@ -219,13 +219,13 @@ class PatternMatcher:
     matchers.
     """
 
-    def __init__(self, nlp, name: str, patterns: List[dict]):
+    def __init__(self, nlp, name: str, patterns: Sequence[dict]):
         """
         Initialise the PatternMatcher.
 
         Args:
             nlp : Spacy model
-            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
+            patterns (Sequence[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
         """
         self.ruler = EntityRuler(nlp)
         self.ruler.add_patterns(patterns)
@@ -362,12 +362,13 @@ class DocumentNormalizer:
         self.nlp = nlp
 
     def _join_consecutive_ent_pairs_with_same_label(
-        self, doc: spacy.tokens.Doc, exclude_types: List[str] = []
+        self, doc: spacy.tokens.Doc, exclude_types: Sequence[str] = []
     ) -> spacy.tokens.Doc:
         """Join entities which occupy consecutive tokens and have the same label.
 
         Args:
             doc (spacy.tokens.Doc)
+            exclude_types (Sequence[str]): entity labels for which consecutive tokens should not be joined.
 
         Returns:
             spacy.tokens.Doc: amended doc
@@ -416,7 +417,48 @@ class DocumentNormalizer:
 
         return newdoc
 
+    def _join_comma_separated_locs(
+        self, doc: spacy.tokens.Doc, loc_ent_labels: Sequence[str] = ["LOC"]
+    ) -> spacy.tokens.Doc:
+        idx = 0
+        new_ents = []
+
+        while idx + 1 < len(doc.ents):
+            # stop at token before last token (as operates on minimum 3 consecutive tokens)
+            if doc.ents[idx].end + 1 >= len(doc):
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_ent = doc.ents[idx + 1]
+            next_token = doc[curr_ent.end]
+            token_after_next_token = doc[curr_ent.end + 1]
+
+            # allow for extra spaces either side of the comma
+            if (
+                (curr_ent.label_ in loc_ent_labels)
+                and (next_token.text.strip() == ",")
+                and (next_ent.label_ in loc_ent_labels)
+                and (token_after_next_token.ent_type_ in loc_ent_labels)
+            ):
+
+                joined_loc_ent = spacy.tokens.Span(
+                    doc, curr_ent.start, next_ent.end, curr_ent.label_
+                )
+                new_ents.append(joined_loc_ent)
+
+                idx += 2
+
+            else:
+                new_ents.append(curr_ent)
+                idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
+
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         newdoc = self._join_consecutive_ent_pairs_with_same_label(doc)
+        newdoc = self._join_comma_separated_locs(newdoc)
 
         return newdoc
