@@ -356,8 +356,8 @@ class MapEntityTypes:
         return doc
 
 
-@Language.factory("document_normalizer")
-class DocumentNormalizer:
+@Language.factory("entity_joiner")
+class EntityJoiner:
     def __init__(self, nlp, name):
         self.nlp = nlp
 

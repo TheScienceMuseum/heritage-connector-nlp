@@ -85,8 +85,8 @@ def test_document_normalizer_join_consecutive_ent_pairs_with_same_label():
     ]
 
     # NOTE: this is not how it would be used in practice but allows us to just test one method
-    d_norm = pipeline.DocumentNormalizer(nlp, "document_normalizer")
-    doc_modified = d_norm._join_consecutive_ent_pairs_with_same_label(doc)
+    e_j = pipeline.EntityJoiner(nlp, "entity_joiner")
+    doc_modified = e_j._join_consecutive_ent_pairs_with_same_label(doc)
 
     assert len(doc_modified.ents) == 1
     assert doc_modified.ents[0].start == 0
@@ -105,8 +105,8 @@ def test_document_normalizer_join_comma_separated_locs():
     ]
 
     # NOTE: this is not how it would be used in practice but allows us to just test one method
-    d_norm = pipeline.DocumentNormalizer(nlp, "document_normalizer")
-    doc_modified = d_norm._join_comma_separated_locs(doc, loc_ent_labels=["LOC"])
+    e_j = pipeline.EntityJoiner(nlp, "entity_joiner")
+    doc_modified = e_j._join_comma_separated_locs(doc, loc_ent_labels=["LOC"])
 
     assert len(doc_modified.ents) == 1
     assert (doc_modified.ents[0].start, doc_modified.ents[0].end) == (5, 8)
@@ -119,7 +119,7 @@ def test_document_normalizer_join_comma_separated_locs():
         spacy.tokens.Span(doc, 6, 8, "LOC"),
         spacy.tokens.Span(doc, 9, 11, "LOC"),
     ]
-    doc_modified = d_norm._join_comma_separated_locs(doc, loc_ent_labels=["LOC"])
+    doc_modified = e_j._join_comma_separated_locs(doc, loc_ent_labels=["LOC"])
 
     assert len(doc_modified.ents) == 1
     assert (doc_modified.ents[0].start, doc_modified.ents[0].end) == (6, 11)
