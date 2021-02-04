@@ -358,10 +358,16 @@ class MapEntityTypes:
 
 @Language.factory("entity_joiner")
 class EntityJoiner:
+    """
+    Create an instance of EntityJoiner, which:
+    - joins consecutive entities which have the same label
+    - joins pairs of location entities (by default those with label LOC) which are separated by only a comma.
+    """
+
     def __init__(self, nlp, name):
         self.nlp = nlp
 
-    def _join_consecutive_ent_pairs_with_same_label(
+    def _join_consecutive_ents_with_same_label(
         self, doc: spacy.tokens.Doc, exclude_types: Sequence[str] = []
     ) -> spacy.tokens.Doc:
         """Join entities which occupy consecutive tokens and have the same label.
@@ -420,6 +426,17 @@ class EntityJoiner:
     def _join_comma_separated_locs(
         self, doc: spacy.tokens.Doc, loc_ent_labels: Sequence[str] = ["LOC"]
     ) -> spacy.tokens.Doc:
+        """
+        Join pairs of consecutive LOC entities which are separated by only a comma, e.g. "[Brighton], [UK]" -> "[Brighton, UK]".
+        Ignores spaces around the comma.
+
+        Args:
+            doc (spacy.tokens.Doc):
+            loc_ent_labels (Sequence[str], optional): entity label names for location entities. Defaults to ["LOC"].
+
+        Returns:
+            spacy.tokens.Doc:
+        """
         idx = 0
         new_ents = []
 

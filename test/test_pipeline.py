@@ -74,7 +74,7 @@ def test_date_matcher():
     # assert [ent.label_ for ent in doc.ents][0] == "DATE"
 
 
-def test_document_normalizer_join_consecutive_ent_pairs_with_same_label():
+def test_document_normalizer_join_consecutive_ents_with_same_label():
     nlp = spacy.blank("en")
 
     doc = nlp("London Victoria Station is often plagued by delayed trains")
@@ -86,7 +86,7 @@ def test_document_normalizer_join_consecutive_ent_pairs_with_same_label():
 
     # NOTE: this is not how it would be used in practice but allows us to just test one method
     e_j = pipeline.EntityJoiner(nlp, "entity_joiner")
-    doc_modified = e_j._join_consecutive_ent_pairs_with_same_label(doc)
+    doc_modified = e_j._join_consecutive_ents_with_same_label(doc)
 
     assert len(doc_modified.ents) == 1
     assert doc_modified.ents[0].start == 0
