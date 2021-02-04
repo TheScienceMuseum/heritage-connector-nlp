@@ -359,7 +359,7 @@ class MapEntityTypes:
 @Language.factory("entity_joiner")
 class EntityJoiner:
     """
-    Create an instance of EntityJoiner, which:
+    A pipeline element which operates on doc objects with entities already annotated. It:
     - joins consecutive entities which have the same label
     - joins pairs of location entities (by default those with label LOC) which are separated by only a comma.
     """
@@ -477,5 +477,89 @@ class EntityJoiner:
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         newdoc = self._join_consecutive_ent_pairs_with_same_label(doc)
         newdoc = self._join_comma_separated_locs(newdoc)
+
+        return newdoc
+
+
+@Language.factory("duplicate_entity_detector")
+class DuplicateEntityDetector:
+    """
+    A pipeline element to detect multiple mentions of the same real-world entity (of certain types).
+    It operates on documents which already have annotated entities. DuplicateEntityDetector sets two
+    custom attributes for spans within the Doc object:
+    - `doc._.entity_co_occurrence`: entities in a document with the same value of this attribute are predicted
+    to refer to the same real-world entity. Defaults to None (span is not part of a co-occurrence.)
+    - `doc._.entity_duplicate`: set to True if a labelled entity is predicted to be a duplicate of one before it
+    in the document. Duplicates are captured through a second, shorter mention of the entity. Defaults to False.
+
+    E.g. in a document with 'Joseph Henry' (PERSON) followed by 'Henry' (PERSON) later on in the passage, the
+    `doc._.entity_co_occurrence` attribute will be set to the same string value for both entities and the
+    `doc._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
+    """
+
+    def __init__(self, nlp, name, ent_types=["PERSON"]):
+        """Create an instance of DuplicateEntityDetector.
+
+        Args:
+            nlp, name
+            ent_types (list, optional): Entity types to process. Select from ["PERSON"]. Defaults to ["PERSON"].
+        """
+        spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+        spacy.tokens.Span.set_extension("entity_duplicate", default=False)
+
+        self.ent_types = ent_types
+
+    def _detect_duplicate_person_mentions(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        """
+        Detect duplicate person mentions of the pattern "Firstname Lastname" then "Lastname".
+        Marks both with a `entity_co_occurrence` value "firstname_lastname" and all but the first
+        mention with a `entity_duplicate` value of True.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+        newdoc = copy.copy(doc)
+        co_occurrence_string = (
+            lambda firstname, lastname: f"{firstname.lower()}_{lastname.lower()}"
+        )
+
+        for ent in newdoc.ents:
+            found_entity_co_occurrence = False
+
+            if (ent.label_ == "PERSON") and (len(ent) > 1):
+                # assumes first name is only one word and all other words make up the last name
+                firstname = ent[0].text
+                lastname = ent[1:].text
+
+                # find other entities with lastname
+                for e in newdoc.ents:
+                    if (e != ent) and (e.text.lower() == lastname.lower()):
+                        found_entity_co_occurrence = True
+
+                        e = spacy.tokens.Span(
+                            newdoc, start=e.start, end=e.end, label="PERSON"
+                        )
+                        e._.entity_co_occurrence = co_occurrence_string(
+                            firstname, lastname
+                        )
+                        e._.entity_duplicate = True
+
+                if found_entity_co_occurrence:
+                    ent._.entity_co_occurrence = co_occurrence_string(
+                        firstname, lastname
+                    )
+
+        return newdoc
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        newdoc = copy.copy(doc)
+
+        if "PERSON" in self.ent_types:
+            newdoc = self._detect_duplicate_person_mentions(newdoc)
 
         return newdoc

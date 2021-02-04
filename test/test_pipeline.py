@@ -123,3 +123,61 @@ def test_document_normalizer_join_comma_separated_locs():
 
     assert len(doc_modified.ents) == 1
     assert (doc_modified.ents[0].start, doc_modified.ents[0].end) == (6, 11)
+
+
+def test_duplicate_entity_detector_person():
+    nlp = spacy.blank("en")
+    dupl_ent_detector = pipeline.DuplicateEntityDetector(
+        nlp, "duplicate_entity_detector"
+    )
+
+    doc = nlp(
+        "Joseph Henry (December 17, 1797 – May 13, 1878) was an American scientist who served as the first Secretary of the Smithsonian Institution. He was the secretary for the National Institute for the Promotion of Science, a precursor of the Smithsonian Institution.[1] He was highly regarded during his lifetime. While building electromagnets, Henry discovered the electromagnetic phenomenon of self-inductance."
+    )
+
+    doc.ents = [
+        spacy.tokens.Span(doc, start - 1, end - 1, label)
+        for (start, end, label) in [
+            (1, 3, "PERSON"),
+            (4, 9, "DATE"),
+            (9, 13, "DATE"),
+            (16, 17, "NORP"),
+            (25, 28, "ORG"),
+            (34, 42, "ORG"),
+            (46, 49, "ORG"),
+            (62, 63, "PERSON"),
+        ]
+    ]
+
+    doc_modified = dupl_ent_detector._detect_duplicate_person_mentions(doc)
+
+    # the start, end, text and label of each entity should not have changed
+    assert all(
+        [
+            (
+                doc.ents[idx].start,
+                doc.ents[idx].end,
+                doc.ents[idx].text,
+                doc.ents[idx].label_,
+            )
+            == (
+                doc_modified.ents[idx].start,
+                doc_modified.ents[idx].end,
+                doc_modified.ents[idx].text,
+                doc_modified.ents[idx].label_,
+            )
+            for idx in range(len(doc.ents))
+        ]
+    )
+
+    # assert [(ent, ent._.entity_co_occurrence, ent._.entity_duplicate) for ent in doc_modified.ents] == []
+
+    assert (
+        doc_modified.ents[0]._.entity_co_occurrence
+        == "joseph_henry"
+        == doc_modified.ents[7]._.entity_co_occurrence
+    )
+    assert doc_modified.ents[7]._.entity_duplicate is True
+    assert all(
+        [doc_modified.ents[idx]._.entity_duplicate is False for idx in range(0, 7)]
+    )
