@@ -487,14 +487,14 @@ class DuplicateEntityDetector:
     A pipeline element to detect multiple mentions of the same real-world entity (of certain types).
     It operates on documents which already have annotated entities. DuplicateEntityDetector sets two
     custom attributes for spans within the Doc object:
-    - `doc._.entity_co_occurrence`: entities in a document with the same value of this attribute are predicted
+    - `span._.entity_co_occurrence`: entities in a document with the same value of this attribute are predicted
     to refer to the same real-world entity. Defaults to None (span is not part of a co-occurrence.)
-    - `doc._.entity_duplicate`: set to True if a labelled entity is predicted to be a duplicate of one before it
+    - `span._.entity_duplicate`: set to True if a labelled entity is predicted to be a duplicate of one before it
     in the document. Duplicates are captured through a second, shorter mention of the entity. Defaults to False.
 
     E.g. in a document with 'Joseph Henry' (PERSON) followed by 'Henry' (PERSON) later on in the passage, the
-    `doc._.entity_co_occurrence` attribute will be set to the same string value for both entities and the
-    `doc._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
+    `span._.entity_co_occurrence` attribute will be set to the same string value for both entities and the
+    `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
     """
 
     def __init__(self, nlp, name, ent_types=["PERSON"]):
@@ -528,7 +528,7 @@ class DuplicateEntityDetector:
             lambda firstname, lastname: f"{firstname.lower()}_{lastname.lower()}"
         )
 
-        for ent in newdoc.ents:
+        for idx, ent in enumerate(newdoc.ents):
             found_entity_co_occurrence = False
 
             if (ent.label_ == "PERSON") and (len(ent) > 1):
@@ -536,8 +536,9 @@ class DuplicateEntityDetector:
                 firstname = ent[0].text
                 lastname = ent[1:].text
 
-                # find other entities with lastname
-                for e in newdoc.ents:
+                # find other entities with lastname. Only look at entities in the doc that occur after
+                # the current entity.
+                for e in newdoc.ents[idx + 1 :]:
                     if (e != ent) and (e.text.lower() == lastname.lower()):
                         found_entity_co_occurrence = True
 
