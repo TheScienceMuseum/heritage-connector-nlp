@@ -170,8 +170,6 @@ def test_duplicate_entity_detector_person():
         ]
     )
 
-    # assert [(ent, ent._.entity_co_occurrence, ent._.entity_duplicate) for ent in doc_modified.ents] == []
-
     assert (
         doc_modified.ents[0]._.entity_co_occurrence
         == "joseph_henry"
@@ -180,4 +178,54 @@ def test_duplicate_entity_detector_person():
     assert doc_modified.ents[7]._.entity_duplicate is True
     assert all(
         [doc_modified.ents[idx]._.entity_duplicate is False for idx in range(0, 7)]
+    )
+
+
+def test_duplicate_entity_detector_org():
+    nlp = spacy.blank("en")
+    dupl_ent_detector = pipeline.DuplicateEntityDetector(
+        nlp, "duplicate_entity_detector"
+    )
+
+    doc = nlp("Apple Newton eMate 300 laptop, made by Apple Inc, 1997.")
+
+    doc.ents = [
+        spacy.tokens.Span(doc, start - 1, end - 1, label)
+        for (start, end, label, _) in [
+            (1, 2, "ORG", "Apple"),
+            (2, 5, "OBJECT", "Newton eMate 300"),
+            (9, 11, "ORG", "Apple Inc"),
+            (12, 13, "DATE", "1997"),
+        ]
+    ]
+
+    doc_modified = dupl_ent_detector._detect_duplicate_org_mentions(doc)
+
+    # the start, end, text and label of each entity should not have changed
+    assert all(
+        [
+            (
+                doc.ents[idx].start,
+                doc.ents[idx].end,
+                doc.ents[idx].text,
+                doc.ents[idx].label_,
+            )
+            == (
+                doc_modified.ents[idx].start,
+                doc_modified.ents[idx].end,
+                doc_modified.ents[idx].text,
+                doc_modified.ents[idx].label_,
+            )
+            for idx in range(len(doc.ents))
+        ]
+    )
+
+    assert (
+        doc_modified.ents[0]._.entity_co_occurrence
+        == "apple_inc"
+        == doc_modified.ents[2]._.entity_co_occurrence
+    )
+    assert doc_modified.ents[0]._.entity_duplicate is True
+    assert all(
+        [doc_modified.ents[idx]._.entity_duplicate is False for idx in range(1, -1)]
     )

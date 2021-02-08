@@ -557,10 +557,59 @@ class DuplicateEntityDetector:
 
         return newdoc
 
+    def _detect_duplicate_org_mentions(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect duplicate organisation mentions where one ORG entity in the doc is of the form "<company name> <legal suffix>",
+        and there are other ORG entities of the form "<company name>".
+
+        Treats the name with the suffix as the main one and marks all others as duplicate, setting the `entity_co_occurrence`
+        attribute to "company_name_legal_suffix" (underscore-joined and lowercased).
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+
+        newdoc = copy.copy(doc)
+        co_occurrence_string = lambda ent: "_".join(
+            [i.lower() for i in ent.text.split(" ")]
+        )
+
+        for idx, ent in enumerate(newdoc.ents):
+            found_co_occurrence = False
+
+            if (ent.label_ == "ORG") and (len(ent) > 1):
+                if ent[-1].text.lower() in [
+                    s.lower() for s in constants.ORG_LEGAL_SUFFIXES
+                ]:
+                    org_without_suffix = ent[0:-1]
+
+                # Find other entities matching just org without suffix.
+                # Enforce that these are already predicted to be ORGs to avoid overwriting places and people
+                # which might have organisations named after them.
+                for e in newdoc.ents:
+                    if (
+                        (e != ent)
+                        and (e.label_ == "ORG")
+                        and (e.text.lower() == org_without_suffix.text.lower())
+                    ):
+                        found_co_occurrence = True
+                        e._.entity_co_occurrence = co_occurrence_string(ent)
+                        e._.entity_duplicate = True
+
+                if found_co_occurrence:
+                    ent._.entity_co_occurrence = co_occurrence_string(ent)
+
+        return newdoc
+
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         newdoc = copy.copy(doc)
 
         if "PERSON" in self.ent_types:
             newdoc = self._detect_duplicate_person_mentions(newdoc)
+
+        if "ORG" in self.ent_types:
+            newdoc = self._detect_duplicate_org_mentions(newdoc)
 
         return newdoc
