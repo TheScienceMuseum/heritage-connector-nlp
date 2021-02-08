@@ -8,6 +8,10 @@ from hc_nlp import constants, logging
 
 logger = logging.get_logger(__name__)
 
+# set custom span attributes
+spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+spacy.tokens.Span.set_extension("entity_duplicate", default=False)
+
 
 @Language.factory(
     "thesaurus_matcher",
@@ -504,8 +508,6 @@ class DuplicateEntityDetector:
             nlp, name
             ent_types (list, optional): Entity types to process. Select from ["PERSON"]. Defaults to ["PERSON"].
         """
-        spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
-        spacy.tokens.Span.set_extension("entity_duplicate", default=False)
 
         self.ent_types = ent_types
 
