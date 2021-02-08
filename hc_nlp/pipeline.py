@@ -8,10 +8,6 @@ from hc_nlp import constants, logging
 
 logger = logging.get_logger(__name__)
 
-# set custom span attributes
-spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
-spacy.tokens.Span.set_extension("entity_duplicate", default=False)
-
 
 @Language.factory(
     "thesaurus_matcher",
@@ -386,12 +382,18 @@ class EntityJoiner:
         idx = 0
         new_ents = []
 
-        while idx + 1 < len(doc.ents):
+        while idx < len(doc.ents):
+            # add last entity to new_ents as not included in above while loop
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
             if doc.ents[idx].end >= len(doc):
+                idx += 1
                 continue
 
             curr_ent = doc.ents[idx]
-            next_ent = doc.ents[idx + 1]
             next_token = doc[curr_ent.end]
 
             if curr_ent.label_ == next_token.ent_type_:
@@ -411,7 +413,7 @@ class EntityJoiner:
                 joined_ent = spacy.tokens.Span(
                     doc,
                     curr_ent.start,
-                    curr_ent.end + len(next_ent) + next_token_offset,
+                    curr_ent.end + 1 + next_token_offset,
                     curr_ent.label_,
                 )
                 new_ents.append(joined_ent)
@@ -444,9 +446,16 @@ class EntityJoiner:
         idx = 0
         new_ents = []
 
-        while idx + 1 < len(doc.ents):
+        while idx < len(doc.ents):
+            # add last entity to new_ents as not included in above while loop
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
             # stop at token before last token (as operates on minimum 3 consecutive tokens)
             if doc.ents[idx].end + 1 >= len(doc):
+                idx += 1
                 continue
 
             curr_ent = doc.ents[idx]
@@ -479,7 +488,8 @@ class EntityJoiner:
         return newdoc
 
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
-        newdoc = self._join_consecutive_ent_pairs_with_same_label(doc)
+        newdoc = copy.copy(doc)
+        newdoc = self._join_consecutive_ents_with_same_label(newdoc)
         newdoc = self._join_comma_separated_locs(newdoc)
 
         return newdoc
@@ -510,6 +520,13 @@ class DuplicateEntityDetector:
         """
 
         self.ent_types = ent_types
+
+        try:
+            # set custom span attributes
+            spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+            spacy.tokens.Span.set_extension("entity_duplicate", default=False)
+        except Exception:
+            logger.warning("Custom span attributes already added.")
 
     def _detect_duplicate_person_mentions(
         self, doc: spacy.tokens.Doc
@@ -587,21 +604,21 @@ class DuplicateEntityDetector:
                 ]:
                     org_without_suffix = ent[0:-1]
 
-                # Find other entities matching just org without suffix.
-                # Enforce that these are already predicted to be ORGs to avoid overwriting places and people
-                # which might have organisations named after them.
-                for e in newdoc.ents:
-                    if (
-                        (e != ent)
-                        and (e.label_ == "ORG")
-                        and (e.text.lower() == org_without_suffix.text.lower())
-                    ):
-                        found_co_occurrence = True
-                        e._.entity_co_occurrence = co_occurrence_string(ent)
-                        e._.entity_duplicate = True
+                    # Find other entities matching just org without suffix.
+                    # Enforce that these are already predicted to be ORGs to avoid overwriting places and people
+                    # which might have organisations named after them.
+                    for e in newdoc.ents:
+                        if (
+                            (e != ent)
+                            and (e.label_ == "ORG")
+                            and (e.text.lower() == org_without_suffix.text.lower())
+                        ):
+                            found_co_occurrence = True
+                            e._.entity_co_occurrence = co_occurrence_string(ent)
+                            e._.entity_duplicate = True
 
-                if found_co_occurrence:
-                    ent._.entity_co_occurrence = co_occurrence_string(ent)
+                    if found_co_occurrence:
+                        ent._.entity_co_occurrence = co_occurrence_string(ent)
 
         return newdoc
 
