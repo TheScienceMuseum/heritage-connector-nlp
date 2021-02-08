@@ -37,48 +37,62 @@ def test_MapEntityTypes():
 
 def test_thesaurus_matcher():
     """
-    Test that the component can be created and imported into a new nlp object.
+    Test that the component can be created and imported into a new nlp object,
+    and that a doc object is returned from a pipeline with the component in last position.
     """
 
-    nlp = spacy.blank("en")
+    nlp = spacy.load("en_core_web_sm")
     thesaurus_path = os.path.join(os.path.dirname(__file__), "test_thesaurus.jsonl")
 
     nlp.add_pipe("thesaurus_matcher", config={"thesaurus_path": thesaurus_path})
+    doc = nlp("This is a test sentence.")
 
     assert "thesaurus_matcher" in nlp.pipe_names
+    assert isinstance(doc, spacy.tokens.Doc)
 
 
 def test_pattern_matcher():
     """
-    Test that the component can be created and imported into a new nlp object.
+    Test that the component can be created and imported into a new nlp object,
+    and that a doc object is returned from a pipeline with the component in last position.
     """
-
-    nlp = spacy.blank("en")
+    nlp = spacy.load("en_core_web_sm")
     nlp.add_pipe("pattern_matcher", config={"patterns": constants.DATE_PATTERNS})
 
+    doc = nlp("This is a test sentence")
+
     assert "pattern_matcher" in nlp.pipe_names
+    assert isinstance(doc, spacy.tokens.Doc)
 
 
 def test_date_matcher():
     """
-    Test that the component can be created and imported into a new nlp object.
+    Test that the component can be created and imported into a new nlp object,
+    and that a doc object is returned from a pipeline with the component in last position.
     """
-
-    nlp = spacy.blank("en")
+    nlp = spacy.load("en_core_web_sm")
     nlp.add_pipe("date_matcher")
 
-    assert "date_matcher" in nlp.pipe_names
+    doc = nlp("This is a test phrase written in February 2021.")
 
-    # doc = nlp("someone was born in the second to first centuries BC")
-    # assert len(doc.ents) == 1
-    # assert [ent.label_ for ent in doc.ents][0] == "DATE"
+    assert "date_matcher" in nlp.pipe_names
+    assert isinstance(doc, spacy.tokens.Doc)
 
 
 def test_entity_joiner():
-    nlp = spacy.blank("en")
+    """
+    Test that the component can be created and imported into a new nlp object,
+    and that a doc object is returned from a pipeline with the component in last position.
+    """
+    nlp = spacy.load("en_core_web_sm")
     nlp.add_pipe("entity_joiner")
 
+    doc = nlp(
+        "This is a sentence with some entities like London, Paris and Apple Inc. in."
+    )
+
     assert "entity_joiner" in nlp.pipe_names
+    assert isinstance(doc, spacy.tokens.Doc)
 
 
 def test_entity_joiner_join_consecutive_ents_with_same_label():
@@ -131,12 +145,30 @@ def test_entity_joiner_join_comma_separated_locs():
     assert len(doc_modified.ents) == 1
     assert (doc_modified.ents[0].start, doc_modified.ents[0].end) == (6, 11)
 
+    # no entities apart from LOC entities are changed
+    assert {
+        (e.text, e.start, e.end, e.label_) for e in doc.ents if e.label_ != "LOC"
+    } == {
+        (e.text, e.start, e.end, e.label_)
+        for e in doc_modified.ents
+        if e.label_ != "LOC"
+    }
+
 
 def test_duplicate_entity_detector():
-    nlp = spacy.blank("en")
+    """
+    Test that the component can be created and imported into a new nlp object,
+    and that a doc object is returned from a pipeline with the component in last position.
+    """
+
+    nlp = spacy.load("en_core_web_sm")
     nlp.add_pipe("duplicate_entity_detector")
+    doc = nlp(
+        "This is a sentence with some entities like London, Paris and Apple Inc. in."
+    )
 
     assert "duplicate_entity_detector" in nlp.pipe_names
+    assert isinstance(doc, spacy.tokens.Doc)
 
 
 def test_duplicate_entity_detector_person():
