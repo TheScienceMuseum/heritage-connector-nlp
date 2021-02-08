@@ -74,7 +74,14 @@ def test_date_matcher():
     # assert [ent.label_ for ent in doc.ents][0] == "DATE"
 
 
-def test_document_normalizer_join_consecutive_ents_with_same_label():
+def test_entity_joiner():
+    nlp = spacy.blank("en")
+    nlp.add_pipe("entity_joiner")
+
+    assert "entity_joiner" in nlp.pipe_names
+
+
+def test_entity_joiner_join_consecutive_ents_with_same_label():
     nlp = spacy.blank("en")
 
     doc = nlp("London Victoria Station is often plagued by delayed trains")
@@ -95,7 +102,7 @@ def test_document_normalizer_join_consecutive_ents_with_same_label():
     assert doc_modified.ents[0].text == "London Victoria Station"
 
 
-def test_document_normalizer_join_comma_separated_locs():
+def test_entity_joiner_join_comma_separated_locs():
     nlp = spacy.blank("en")
 
     doc = nlp("Kate used to live in Cairo, Egypt")
@@ -123,6 +130,13 @@ def test_document_normalizer_join_comma_separated_locs():
 
     assert len(doc_modified.ents) == 1
     assert (doc_modified.ents[0].start, doc_modified.ents[0].end) == (6, 11)
+
+
+def test_duplicate_entity_detector():
+    nlp = spacy.blank("en")
+    nlp.add_pipe("duplicate_entity_detector")
+
+    assert "duplicate_entity_detector" in nlp.pipe_names
 
 
 def test_duplicate_entity_detector_person():
