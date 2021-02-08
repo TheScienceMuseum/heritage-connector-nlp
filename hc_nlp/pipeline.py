@@ -497,7 +497,7 @@ class DuplicateEntityDetector:
     `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
     """
 
-    def __init__(self, nlp, name, ent_types=["PERSON"]):
+    def __init__(self, nlp, name, ent_types=["PERSON", "ORG"]):
         """Create an instance of DuplicateEntityDetector.
 
         Args:
