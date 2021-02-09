@@ -407,15 +407,24 @@ class EntityJoiner:
                 ):
                     next_token_offset += 1
 
+                joined_ent_end = curr_ent.end + 1 + next_token_offset
                 joined_ent = spacy.tokens.Span(
                     doc,
                     curr_ent.start,
-                    curr_ent.end + 1 + next_token_offset,
+                    joined_ent_end,
                     curr_ent.label_,
                 )
                 new_ents.append(joined_ent)
 
-                idx += 2 + next_token_offset
+                # find and go to next entity after the observed span is finished
+                ent_idxs_after_joined_ent = [
+                    i for (i, e) in enumerate(doc.ents) if e.start > joined_ent_end
+                ]
+
+                if len(ent_idxs_after_joined_ent) > 0:
+                    idx = min(ent_idxs_after_joined_ent)
+                else:
+                    break
 
             else:
                 new_ents.append(curr_ent)

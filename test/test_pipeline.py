@@ -115,6 +115,20 @@ def test_entity_joiner_join_consecutive_ents_with_same_label():
     assert doc_modified.ents[0].label_ == "FAC"
     assert doc_modified.ents[0].text == "London Victoria Station"
 
+    doc = nlp("London Victoria Station is often plagued by delayed trains")
+    doc.ents = [
+        spacy.tokens.Span(doc, 0, 2, "FAC"),
+        spacy.tokens.Span(doc, 2, 3, "FAC"),
+    ]
+
+    doc_modified = e_j._join_consecutive_ents_with_same_label(doc)
+
+    assert len(doc_modified.ents) == 1
+    assert doc_modified.ents[0].start == 0
+    assert doc_modified.ents[0].end == 3
+    assert doc_modified.ents[0].label_ == "FAC"
+    assert doc_modified.ents[0].text == "London Victoria Station"
+
 
 def test_entity_joiner_join_comma_separated_locs():
     nlp = spacy.blank("en")
