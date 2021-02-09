@@ -517,15 +517,15 @@ class DuplicateEntityDetector:
     `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
     """
 
-    def __init__(self, nlp, name, ent_types=["PERSON", "ORG"]):
+    def __init__(self, nlp, name, types_ignore: Sequence[str] = []):
         """Create an instance of DuplicateEntityDetector.
 
         Args:
             nlp, name
-            ent_types (list, optional): Entity types to process. Select from ["PERSON"]. Defaults to ["PERSON"].
+            types_ignore (Sequence [str], optional): Entity types to ignore from ["PERSON", "ORG", "LOC"].
         """
 
-        self.ent_types = ent_types
+        self.types_ignore = {"PERSON", "ORG", "LOC"}.intersection(set(types_ignore))
 
         try:
             # set custom span attributes
@@ -628,13 +628,56 @@ class DuplicateEntityDetector:
 
         return newdoc
 
+    def _detect_duplicate_loc_mentions(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect duplicate location (LOC) mentions where one LOC entity in the doc is of the form "<place>, <surrounding place>",
+        and there are other LOC entities of the form "<place>".
+
+        Treats the longer entity mention as the main one and marks all others as duplicate, setting the `entity_co_occurrence`
+        attribute to the underscore-joined and lowercased version of the longest entity mention.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+
+        newdoc = copy.copy(doc)
+        co_occurrence_string = lambda ent: "_".join(
+            [i.lower() for i in ent.text.split(" ")]
+        )
+
+        for idx, ent in enumerate(newdoc.ents):
+            found_co_occurrence = False
+
+            if (ent.label_ == "LOC") and (len(ent) > 1) and ("," in ent.text):
+                loc_first_part = ent.text.split(",")[0]
+
+                for e in newdoc.ents:
+                    if (
+                        (e != ent)
+                        and (e.label_ == "LOC")
+                        and (e.text.lower() == loc_first_part.lower())
+                    ):
+                        found_co_occurrence = True
+                        e._.entity_co_occurrence = co_occurrence_string(ent)
+                        e._.entity_duplicate = True
+
+                if found_co_occurrence:
+                    ent._.entity_co_occurrence = co_occurrence_string(ent)
+
+        return newdoc
+
     def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
         newdoc = copy.copy(doc)
 
-        if "PERSON" in self.ent_types:
+        if "PERSON" not in self.types_ignore:
             newdoc = self._detect_duplicate_person_mentions(newdoc)
 
-        if "ORG" in self.ent_types:
+        if "ORG" not in self.types_ignore:
             newdoc = self._detect_duplicate_org_mentions(newdoc)
+
+        if "LOC" not in self.types_ignore:
+            newdoc = self._detect_duplicate_loc_mentions(newdoc)
 
         return newdoc

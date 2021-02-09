@@ -289,3 +289,66 @@ def test_duplicate_entity_detector_org():
     assert all(
         [doc_modified.ents[idx]._.entity_duplicate is False for idx in range(1, -1)]
     )
+
+
+def test_duplicate_entity_detector_loc():
+    nlp = spacy.blank("en")
+    dupl_ent_detector = pipeline.DuplicateEntityDetector(
+        nlp, "duplicate_entity_detector"
+    )
+
+    doc = nlp(
+        """A2A: http://www.a2a.org.uk/html/094-738.htm 
+        1846-1859, coachbuilder, London  Hooper & Co. (Coachbuilders) Ltd of St James's St. and Park Royal, London NW10;  1808 - J and G Adams opened a coachmaking business at 57 Haymarket, London; 1811 - George Adams moved to 28 Haymarket  1833 - George Adams joined by George Hooper  1846 - became known as Hooper & Co, coachmakers, began trading at 28 Haymarket;  1867 the company moved their premises to Victoria Street and in 1897 they moved to 54 St James's Street. Hooper and Co closed in 1959, by which time they were a subsidiary company of the Birmingham Small Arms Company. 
+        Hooper & Co. (Coachbuilders) Ltd of St James's St. and Park Royal, London NW10;  1808 - J and G Adams opened a coachmaking business at 57 Haymarket, London; 1811 - George Adams moved to 28 Haymarket  1833 - George Adams joined by George Hooper  1846 - became known as Hooper & Co, coachmakers, began trading at 28 Haymarket;  1867 the company moved their premises to Victoria Street and in 1897 they moved to 54 St James's Street. Hooper and Co closed in 1959, by which time they were a subsidiary company of the Birmingham Small Arms Company."""
+    )
+
+    doc.ents = [
+        spacy.tokens.Span(doc, start, end, label)
+        for (start, end, label, _) in [
+            (20, 23, "LOC", "St James's"),
+            (25, 27, "LOC", "Park Royal"),
+            (44, 47, "LOC", "Haymarket, London"),
+            (55, 56, "LOC", "Haymarket"),
+            (81, 82, "LOC", "Haymarket"),
+            (136, 139, "LOC", "St James's"),
+            (141, 143, "LOC", "Park Royal"),
+            (160, 163, "LOC", "Haymarket, London"),
+            (171, 172, "LOC", "Haymarket"),
+            (197, 198, "LOC", "Haymarket"),
+        ]
+    ]
+
+    doc_modified = dupl_ent_detector._detect_duplicate_loc_mentions(doc)
+
+    # the start, end, text and label of each entity should not have changed
+    assert all(
+        [
+            (
+                doc.ents[idx].start,
+                doc.ents[idx].end,
+                doc.ents[idx].text,
+                doc.ents[idx].label_,
+            )
+            == (
+                doc_modified.ents[idx].start,
+                doc_modified.ents[idx].end,
+                doc_modified.ents[idx].text,
+                doc_modified.ents[idx].label_,
+            )
+            for idx in range(len(doc.ents))
+        ]
+    )
+
+    assert all(
+        [
+            doc_modified.ents[idx]._.entity_co_occurrence == "haymarket,_london"
+            for idx in (2, 3, 4, 7, 8, 9)
+        ]
+    )
+    assert all(
+        [doc_modified.ents[idx]._.entity_duplicate is True for idx in (3, 4, 8, 9)]
+    )
+    assert all(
+        [doc_modified.ents[idx]._.entity_duplicate is False for idx in (0, 1, 5, 6, 7)]
+    )
