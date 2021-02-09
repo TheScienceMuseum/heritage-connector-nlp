@@ -401,14 +401,11 @@ class EntityJoiner:
                 # the next token. For each token with a matching label found, increment the offset value by one.
                 # This is then used to set the end of joined_ent and increment the value of idx.
                 next_token_offset = 0
-                while (
+                while ((curr_ent.end + 1 + next_token_offset) < len(doc)) and (
                     curr_ent.label_
                     == doc[curr_ent.end + 1 + next_token_offset].ent_type_
                 ):
                     next_token_offset += 1
-
-                    if (curr_ent.end + 1 + next_token_offset) >= len(doc):
-                        break
 
                 joined_ent = spacy.tokens.Span(
                     doc,
