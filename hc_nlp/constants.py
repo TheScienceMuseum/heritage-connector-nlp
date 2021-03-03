@@ -37,7 +37,7 @@ ROYAL_TITLES = [
 # must be single word. No punctuation. Not case-sensitive
 ORG_LEGAL_SUFFIXES = {
     "International", "Group", "Solutions", "Technologies", "Management", "Association", "Associates", "Partners", 
-    "Systems", "Holdings", "Services", "Bank", "Fund", "Company", "Limited", "Corporation", 
+    "Systems", "Holdings", "Services", "Bank", "Fund", "Company", "Limited", "Corporation", "Society",
     "Inc", "Ltd", "LLC", "Co", "Corp", "LLP", "PLC", 
     "GmbH", "AG", "KG", "OHG", "GbR", "PartG", "Stiftung",  # German
     "Stichting", "Mij", "Mts", "VOF", "CV", "BV", "NV",  # Dutch
