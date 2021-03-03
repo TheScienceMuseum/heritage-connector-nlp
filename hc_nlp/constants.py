@@ -34,10 +34,14 @@ ROYAL_TITLES = [
     "king", "queen", "prince", "princess", "emperor", "empress"
 ]
 
-# must be single word
+# must be single word. No punctuation. Not case-sensitive
 ORG_LEGAL_SUFFIXES = {
     "International", "Group", "Solutions", "Technologies", "Management", "Association", "Associates", "Partners", 
-    "Systems", "Holdings", "Services", "Bank", "Fund", "Stiftung", "Company", "Inc", "Ltd", "LLC", "Co", "Corp", "LLP", "Plc"
+    "Systems", "Holdings", "Services", "Bank", "Fund", "Company", "Limited", "Corporation", 
+    "Inc", "Ltd", "LLC", "Co", "Corp", "LLP", "PLC", 
+    "GmbH", "AG", "KG", "OHG", "GbR", "PartG", "Stiftung",  # German
+    "Stichting", "Mij", "Mts", "VOF", "CV", "BV", "NV",  # Dutch
+    "FCP", "GIE", "SEP", "SNC", "SARL", "SA", "SCOP", "SEM", "SAS",  # French
 }
 
 
