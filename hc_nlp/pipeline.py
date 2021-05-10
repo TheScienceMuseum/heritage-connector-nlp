@@ -360,12 +360,66 @@ class MapEntityTypes:
 class EntityJoiner:
     """
     A pipeline element which operates on doc objects with entities already annotated. It:
-    - joins consecutive entities which have the same label
+    - joins consecutive entities which have the same label;
     - joins pairs of location entities (by default those with label LOC) which are separated by only a comma.
+    - for consecutive PERSON entities separated by an 'and' (e.g. 'Katharine and Charles Parsons'), sets the
+    span attribute `ent._.alt_ent_text` to the full name of the first person ('Katharine Parsons',
+    using the same example). Useful for entity linking.
     """
 
     def __init__(self, nlp, name):
         self.nlp = nlp
+
+    def _detect_joined_person_entities(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect two people in a row separated by an 'and', where the first person is only referred to by their
+        first name. Set the attribute `ent._.alt_ent_text` for the first person to their first name, plus
+        the surname of the next mentioned person.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc: amended doc
+        """
+        # set custom span attributes
+        if not spacy.tokens.Span.has_extension("alt_ent_text"):
+            spacy.tokens.Span.set_extension("alt_ent_text", default=None)
+
+        idx = 0
+        new_ents = []
+
+        while idx < len(doc.ents):
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
+            if doc.ents[idx].end >= len(doc):
+                idx += 1
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_token = doc[curr_ent.end]
+            next_ent = doc.ents[idx + 1]
+
+            # two consecutive entities are labelled PERSON; separated only by 'and' or '&'; don't share the same last token (i.e. surname)
+            if (
+                (curr_ent.label_ == next_ent.label_ == "PERSON")
+                and (next_token.text.lower() in {"and", "&"})
+                and (curr_ent.end + 1 == next_ent.start)
+                and (curr_ent[-1].text.lower() != next_ent[-1].text.lower())
+            ):
+                # assume lastname is all tokens but the first
+                lastname = next_ent[1:].text
+                curr_ent._.alt_ent_text = curr_ent.text + " " + lastname
+
+            new_ents.append(curr_ent)
+            idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
 
     def _join_consecutive_ents_with_same_label(
         self, doc: spacy.tokens.Doc, exclude_types: Sequence[str] = []
@@ -497,6 +551,7 @@ class EntityJoiner:
         newdoc = copy.copy(doc)
         newdoc = self._join_consecutive_ents_with_same_label(newdoc)
         newdoc = self._join_comma_separated_locs(newdoc)
+        newdoc = self._detect_joined_person_entities(newdoc)
 
         return newdoc
 
