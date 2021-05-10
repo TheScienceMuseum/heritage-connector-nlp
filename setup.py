@@ -11,7 +11,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/TheScienceMuseum/heritage-connector-nlp",
-    download_url="https://github.com/TheScienceMuseum/heritage-connector-nlp/archive/v0.3.0.tar.gz",
+    download_url="https://github.com/TheScienceMuseum/heritage-connector-nlp/archive/v0.3.6.tar.gz",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
