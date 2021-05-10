@@ -70,7 +70,7 @@ class EntityFilter:
         name: str,
         max_token_length: int = 1,
         remove_all_lower: bool = True,
-        remove_all_upper: bool = True,
+        remove_all_upper: bool = False,
         ent_labels_ignore: Sequence[str] = [],
     ):
         """
@@ -82,7 +82,7 @@ class EntityFilter:
             remove_all_lower (bool, optional): Entities with one or more lowercase
                 token are removed. Defaults to True.
             remove_all_upper (bool, optional): Entities with one or more uppercase
-                token are removed. Defaults to True.
+                token are removed. Defaults to False.
             ent_labels_ignore (Sequence[str], optional): Entities with labels to ignore
                 when making the corrections.
         """
