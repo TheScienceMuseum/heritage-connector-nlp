@@ -20,7 +20,7 @@ COLLECTION_NAME_PATTERNS = [
     {"label": "ORG", "pattern": [{'IS_TITLE': True, 'OP': '+'}, {'LOWER': 'archive'}]},  # Charles Urban archive
 ]
 
-### USEFUL CONSTANTS
+### USEFUL CONSTANTS. None of these should be case-sensitive.
 
 ORDINALS = [
     "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th",
@@ -33,6 +33,17 @@ ORDINALS = [
 ROYAL_TITLES = [
     "king", "queen", "prince", "princess", "emperor", "empress"
 ]
+
+# must be single word. No punctuation. Not case-sensitive
+ORG_LEGAL_SUFFIXES = {
+    "International", "Group", "Solutions", "Technologies", "Management", "Association", "Associates", "Partners", 
+    "Systems", "Holdings", "Services", "Bank", "Fund", "Company", "Limited", "Corporation", "Society",
+    "Inc", "Ltd", "LLC", "Co", "Corp", "LLP", "PLC", 
+    "GmbH", "AG", "KG", "OHG", "GbR", "PartG", "Stiftung",  # German
+    "Stichting", "Mij", "Mts", "VOF", "CV", "BV", "NV",  # Dutch
+    "FCP", "GIE", "SEP", "SNC", "SARL", "SA", "SCOP", "SEM", "SAS",  # French
+}
+
 
 ### SPACY TO HERITAGECONNECTOR ENTITY MAPPING
 ### This allows us to map multiple Spacy NER classes to one class, in the case that we don't need the 

@@ -16,8 +16,8 @@ label-studio = "*"
 jupyterlab = "*"
 tqdm = "*"
 seaborn = "*"
-spacy-nightly = "*"
-spacy-transformers = "*"
+spacy = ">=3.0.0"
+spacy-transformers = ">=1.0.1"
 
 [requires]
 python_version = "3.7"

@@ -5,7 +5,8 @@ coverage
 pytest-cov
 
 pandas
-spacy-nightly[transformers] --pre
+spacy>=3.0.0
+spacy-transformers>=1.0.1
 jupyterlab
 tqdm
 seaborn

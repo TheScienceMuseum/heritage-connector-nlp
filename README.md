@@ -2,13 +2,13 @@
 
 Text processing for the [Heritage Connector](https://github.com/TheScienceMuseum/heritage-connector): a set of NLP utilities for the Heritage sector.
 
-**--- IN DEVELOPMENT ---**
+For more information see https://doi.org/10.1002/ail2.23.
 
-(note about spaCy: the master branch and all releases after 0.2.1 use spaCy v3, which is currently in nightly and not meant for production use.)
+**--- IN DEVELOPMENT ---**
 
 Includes:
 
-- information extraction (NER, NEL, relation classification)
+- low-data extensions for information extraction (NER, NEL, relation classification)
 - labelling ([Label Studio](https://labelstud.io/))
 - test suite for models
 

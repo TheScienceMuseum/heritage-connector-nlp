@@ -3,7 +3,7 @@ from spacy.pipeline import EntityRuler
 from spacy.language import Language
 import time
 import copy
-from typing import List
+from typing import Sequence
 from hc_nlp import constants, logging
 
 logger = logging.get_logger(__name__)
@@ -70,8 +70,8 @@ class EntityFilter:
         name: str,
         max_token_length: int = 1,
         remove_all_lower: bool = True,
-        remove_all_upper: bool = True,
-        ent_labels_ignore: List[str] = [],
+        remove_all_upper: bool = False,
+        ent_labels_ignore: Sequence[str] = [],
     ):
         """
         Initialise the EntityFilter.
@@ -82,8 +82,8 @@ class EntityFilter:
             remove_all_lower (bool, optional): Entities with one or more lowercase
                 token are removed. Defaults to True.
             remove_all_upper (bool, optional): Entities with one or more uppercase
-                token are removed. Defaults to True.
-            ent_labels_ignore (List[str], optional): Entities with labels to ignore
+                token are removed. Defaults to False.
+            ent_labels_ignore (Sequence[str], optional): Entities with labels to ignore
                 when making the corrections.
         """
         self.nlp = nlp
@@ -161,7 +161,9 @@ class EntityFilter:
 
         for ent in newdoc.ents:
             if ent.label_ == "PERSON":
-                if newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES:
+                if (newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES) and (
+                    not newdoc[ent.start - 1].ent_type_
+                ):
                     new_ent = spacy.tokens.Span(
                         newdoc, ent.start - 1, ent.end, label="PERSON"
                     )
@@ -193,13 +195,13 @@ class EntityFilter:
         return doc
 
 
-def pattern_matcher(nlp, name: str, patterns: List[dict]):
+def pattern_matcher(nlp, name: str, patterns: Sequence[dict]):
     """
     Create an EntityRuler object loaded with a list of patterns.
 
     Args:
         nlp : Spacy model
-        patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
+        patterns (Sequence[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
 
     Returns:
         Spacy EntityRuler component
@@ -217,13 +219,13 @@ class PatternMatcher:
     matchers.
     """
 
-    def __init__(self, nlp, name: str, patterns: List[dict]):
+    def __init__(self, nlp, name: str, patterns: Sequence[dict]):
         """
         Initialise the PatternMatcher.
 
         Args:
             nlp : Spacy model
-            patterns (List[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
+            patterns (Sequence[dict]): for the EntityRuler. See https://spacy.io/usage/rule-based-matching#entityruler
         """
         self.ruler = EntityRuler(nlp)
         self.ruler.add_patterns(patterns)
@@ -272,11 +274,15 @@ class DateMatcher(PatternMatcher):
                     if (doc[first_child.i - 1].lower_ in ["and", "to", "or"]) and (
                         doc[first_child.i - 2].lower_ in constants.ORDINALS
                     ):
-                        # go back to the first child of "nth"
-                        start = next(doc[first_child.i - 2].children).i
+                        try:
+                            # go back to the first child of "nth"
+                            start = next(doc[first_child.i - 2].children).i
 
-                        # if the child is after the 'nth' token, use the token instead of its child
-                        if start > doc[first_child.i - 2].i:
+                            # if the child is after the 'nth' token, use the token instead of its child
+                            if start > doc[first_child.i - 2].i:
+                                start = doc[first_child.i - 2].i
+                        except Exception:
+                            # if couldn't find children of 'nth', then just take 'nth' as start
                             start = doc[first_child.i - 2].i
                     else:
                         start = first_child.i
@@ -348,3 +354,330 @@ class MapEntityTypes:
         doc.ents = new_ents
 
         return doc
+
+
+@Language.factory("entity_joiner")
+class EntityJoiner:
+    """
+    A pipeline element which operates on doc objects with entities already annotated. It:
+    - joins consecutive entities which have the same label
+    - joins pairs of location entities (by default those with label LOC) which are separated by only a comma.
+    """
+
+    def __init__(self, nlp, name):
+        self.nlp = nlp
+
+    def _join_consecutive_ents_with_same_label(
+        self, doc: spacy.tokens.Doc, exclude_types: Sequence[str] = []
+    ) -> spacy.tokens.Doc:
+        """Join entities which occupy consecutive tokens and have the same label.
+
+        Args:
+            doc (spacy.tokens.Doc)
+            exclude_types (Sequence[str]): entity labels for which consecutive tokens should not be joined.
+
+        Returns:
+            spacy.tokens.Doc: amended doc
+        """
+        idx = 0
+        new_ents = []
+
+        while idx < len(doc.ents):
+            # add last entity to new_ents as not included in above while loop
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
+            if doc.ents[idx].end >= len(doc):
+                idx += 1
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_token = doc[curr_ent.end]
+
+            if curr_ent.label_ == next_token.ent_type_:
+                # search for continuation of the same label for future tokens, starting with the one after
+                # the next token. For each token with a matching label found, increment the offset value by one.
+                # This is then used to set the end of joined_ent and increment the value of idx.
+                next_token_offset = 0
+                while ((curr_ent.end + 1 + next_token_offset) < len(doc)) and (
+                    curr_ent.label_
+                    == doc[curr_ent.end + 1 + next_token_offset].ent_type_
+                ):
+                    next_token_offset += 1
+
+                joined_ent_end = curr_ent.end + 1 + next_token_offset
+                joined_ent = spacy.tokens.Span(
+                    doc,
+                    curr_ent.start,
+                    joined_ent_end,
+                    curr_ent.label_,
+                )
+                new_ents.append(joined_ent)
+
+                # find and go to next entity after the observed span is finished
+                ent_idxs_after_joined_ent = [
+                    i for (i, e) in enumerate(doc.ents) if e.start > joined_ent_end
+                ]
+
+                if len(ent_idxs_after_joined_ent) > 0:
+                    idx = min(ent_idxs_after_joined_ent)
+                else:
+                    break
+
+            else:
+                new_ents.append(curr_ent)
+                idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
+
+    def _join_comma_separated_locs(
+        self, doc: spacy.tokens.Doc, loc_ent_labels: Sequence[str] = ["LOC"]
+    ) -> spacy.tokens.Doc:
+        """
+        Join pairs of consecutive LOC entities which are separated by only a comma, e.g. "[Brighton], [UK]" -> "[Brighton, UK]".
+        Ignores spaces around the comma.
+
+        Args:
+            doc (spacy.tokens.Doc):
+            loc_ent_labels (Sequence[str], optional): entity label names for location entities. Defaults to ["LOC"].
+
+        Returns:
+            spacy.tokens.Doc:
+        """
+        idx = 0
+        new_ents = []
+
+        while idx < len(doc.ents):
+            # add last entity to new_ents as not included in above while loop
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
+            # stop at token before last token (as operates on minimum 3 consecutive tokens)
+            if doc.ents[idx].end + 1 >= len(doc):
+                idx += 1
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_ent = doc.ents[idx + 1]
+            next_token = doc[curr_ent.end]
+            token_after_next_token = doc[curr_ent.end + 1]
+
+            # allow for extra spaces either side of the comma
+            if (
+                (curr_ent.label_ in loc_ent_labels)
+                and (next_token.text.strip() == ",")
+                and (next_ent.label_ in loc_ent_labels)
+                and (token_after_next_token.ent_type_ in loc_ent_labels)
+            ):
+
+                joined_loc_ent = spacy.tokens.Span(
+                    doc, curr_ent.start, next_ent.end, curr_ent.label_
+                )
+                new_ents.append(joined_loc_ent)
+
+                idx += 2
+
+            else:
+                new_ents.append(curr_ent)
+                idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        newdoc = copy.copy(doc)
+        newdoc = self._join_consecutive_ents_with_same_label(newdoc)
+        newdoc = self._join_comma_separated_locs(newdoc)
+
+        return newdoc
+
+
+@Language.factory("duplicate_entity_detector")
+class DuplicateEntityDetector:
+    """
+    A pipeline element to detect multiple mentions of the same real-world entity (of certain types).
+    It operates on documents which already have annotated entities. DuplicateEntityDetector sets two
+    custom attributes for spans within the Doc object:
+    - `span._.entity_co_occurrence`: entities in a document with the same value of this attribute are predicted
+    to refer to the same real-world entity. Defaults to None (span is not part of a co-occurrence.)
+    - `span._.entity_duplicate`: set to True if a labelled entity is predicted to be a duplicate of one before it
+    in the document. Duplicates are captured through a second, shorter mention of the entity. Defaults to False.
+
+    E.g. in a document with 'Joseph Henry' (PERSON) followed by 'Henry' (PERSON) later on in the passage, the
+    `span._.entity_co_occurrence` attribute will be set to the same string value for both entities and the
+    `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
+    """
+
+    def __init__(self, nlp, name, types_ignore: Sequence[str] = []):
+        """Create an instance of DuplicateEntityDetector.
+
+        Args:
+            nlp, name
+            types_ignore (Sequence [str], optional): Entity types to ignore from ["PERSON", "ORG", "LOC"].
+        """
+
+        self.types_ignore = {"PERSON", "ORG", "LOC"}.intersection(set(types_ignore))
+
+        try:
+            # set custom span attributes
+            spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+            spacy.tokens.Span.set_extension("entity_duplicate", default=False)
+        except Exception:
+            logger.warning("Custom span attributes already added.")
+
+    def _detect_duplicate_person_mentions(
+        self, doc: spacy.tokens.Doc
+    ) -> spacy.tokens.Doc:
+        """
+        Detect duplicate person mentions of the pattern "Firstname Lastname" then "Lastname".
+        Marks both with a `entity_co_occurrence` value "firstname_lastname" and all but the first
+        mention with a `entity_duplicate` value of True.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+        newdoc = copy.copy(doc)
+        co_occurrence_string = (
+            lambda firstname, lastname: f"{firstname.lower()}_{lastname.lower()}"
+        )
+
+        for idx, ent in enumerate(newdoc.ents):
+            found_entity_co_occurrence = False
+
+            if (ent.label_ == "PERSON") and (len(ent) > 1):
+                # assumes first name is only one word and all other words make up the last name
+                firstname = ent[0].text
+                lastname = ent[1:].text
+
+                # find other entities with lastname. Only look at entities in the doc that occur after
+                # the current entity.
+                for e in newdoc.ents[idx + 1 :]:
+                    if (e != ent) and (e.text.lower() == lastname.lower()):
+                        found_entity_co_occurrence = True
+
+                        e = spacy.tokens.Span(
+                            newdoc, start=e.start, end=e.end, label="PERSON"
+                        )
+                        e._.entity_co_occurrence = co_occurrence_string(
+                            firstname, lastname
+                        )
+                        e._.entity_duplicate = True
+
+                if found_entity_co_occurrence:
+                    ent._.entity_co_occurrence = co_occurrence_string(
+                        firstname, lastname
+                    )
+
+        return newdoc
+
+    def _detect_duplicate_org_mentions(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect duplicate organisation mentions where one ORG entity in the doc is of the form "<company name> <legal suffix>",
+        and there are other ORG entities of the form "<company name>".
+
+        Treats the name with the suffix as the main one and marks all others as duplicate, setting the `entity_co_occurrence`
+        attribute to "company_name_legal_suffix" (underscore-joined and lowercased).
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+
+        newdoc = copy.copy(doc)
+        co_occurrence_string = lambda ent: "_".join(
+            [i.lower() for i in ent.text.split(" ")]
+        )
+
+        for idx, ent in enumerate(newdoc.ents):
+            found_co_occurrence = False
+
+            if (ent.label_ == "ORG") and (len(ent) > 1):
+                if ent[-1].text.lower() in [
+                    s.lower() for s in constants.ORG_LEGAL_SUFFIXES
+                ]:
+                    org_without_suffix = ent[0:-1]
+
+                    # Find other entities matching just org without suffix.
+                    # Enforce that these are already predicted to be ORGs to avoid overwriting places and people
+                    # which might have organisations named after them.
+                    for e in newdoc.ents:
+                        if (
+                            (e != ent)
+                            and (e.label_ == "ORG")
+                            and (e.text.lower() == org_without_suffix.text.lower())
+                        ):
+                            found_co_occurrence = True
+                            e._.entity_co_occurrence = co_occurrence_string(ent)
+                            e._.entity_duplicate = True
+
+                    if found_co_occurrence:
+                        ent._.entity_co_occurrence = co_occurrence_string(ent)
+
+        return newdoc
+
+    def _detect_duplicate_loc_mentions(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect duplicate location (LOC) mentions where one LOC entity in the doc is of the form "<place>, <surrounding place>",
+        and there are other LOC entities of the form "<place>".
+
+        Treats the longer entity mention as the main one and marks all others as duplicate, setting the `entity_co_occurrence`
+        attribute to the underscore-joined and lowercased version of the longest entity mention.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc
+        """
+
+        newdoc = copy.copy(doc)
+        co_occurrence_string = lambda ent: "_".join(
+            [i.lower() for i in ent.text.split(" ")]
+        )
+
+        for idx, ent in enumerate(newdoc.ents):
+            found_co_occurrence = False
+
+            if (ent.label_ == "LOC") and (len(ent) > 1) and ("," in ent.text):
+                loc_first_part = ent.text.split(",")[0]
+
+                for e in newdoc.ents:
+                    if (
+                        (e != ent)
+                        and (e.label_ == "LOC")
+                        and (e.text.lower() == loc_first_part.lower())
+                    ):
+                        found_co_occurrence = True
+                        e._.entity_co_occurrence = co_occurrence_string(ent)
+                        e._.entity_duplicate = True
+
+                if found_co_occurrence:
+                    ent._.entity_co_occurrence = co_occurrence_string(ent)
+
+        return newdoc
+
+    def __call__(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        newdoc = copy.copy(doc)
+
+        if "PERSON" not in self.types_ignore:
+            newdoc = self._detect_duplicate_person_mentions(newdoc)
+
+        if "ORG" not in self.types_ignore:
+            newdoc = self._detect_duplicate_org_mentions(newdoc)
+
+        if "LOC" not in self.types_ignore:
+            newdoc = self._detect_duplicate_loc_mentions(newdoc)
+
+        return newdoc
