@@ -527,12 +527,12 @@ class DuplicateEntityDetector:
 
         self.types_ignore = {"PERSON", "ORG", "LOC"}.intersection(set(types_ignore))
 
-        try:
-            # set custom span attributes
+        # set custom span attributes
+        if not spacy.tokens.Span.has_extension("entity_co_occurrence"):
             spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+
+        if not spacy.tokens.Span.has_extension("entity_duplicate"):
             spacy.tokens.Span.set_extension("entity_duplicate", default=False)
-        except Exception:
-            logger.warning("Custom span attributes already added.")
 
     def _detect_duplicate_person_mentions(
         self, doc: spacy.tokens.Doc
