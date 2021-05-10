@@ -512,9 +512,9 @@ class DuplicateEntityDetector:
     - `span._.entity_duplicate`: set to True if a labelled entity is predicted to be a duplicate of one before it
     in the document. Duplicates are captured through a second, shorter mention of the entity. Defaults to False.
 
-    E.g. in a document with 'Joseph Henry' (PERSON) followed by 'Henry' (PERSON) later on in the passage, the
-    `span._.entity_co_occurrence` attribute will be set to the same string value for both entities and the
-    `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
+    E.g. in a document with 'Joseph Henry' (PERSON) followed by 'Henry' (PERSON) or 'Joseph' (PERSON) later on in
+    the passage, the `span._.entity_co_occurrence` attribute will be set to the same string value for both entities
+    and the `span._.entity_duplicate` attribute will be set to False for the first mention and True for the second.
     """
 
     def __init__(self, nlp, name, types_ignore: Sequence[str] = []):
@@ -561,10 +561,13 @@ class DuplicateEntityDetector:
                 firstname = ent[0].text
                 lastname = ent[1:].text
 
-                # find other entities with lastname. Only look at entities in the doc that occur after
-                # the current entity.
+                # find other entities with text equal to firstname or lastname. Only look at entities in the
+                # doc that occur after the current entity.
                 for e in newdoc.ents[idx + 1 :]:
-                    if (e != ent) and (e.text.lower() == lastname.lower()):
+                    if (e != ent) and (
+                        (e.text.lower() == lastname.lower())
+                        or (e.text.lower() == firstname.lower())
+                    ):
                         found_entity_co_occurrence = True
 
                         e = spacy.tokens.Span(
