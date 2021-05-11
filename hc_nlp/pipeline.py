@@ -611,10 +611,29 @@ class DuplicateEntityDetector:
         for idx, ent in enumerate(newdoc.ents):
             found_entity_co_occurrence = False
 
-            if (ent.label_ == "PERSON") and (len(ent) > 1):
-                # assumes first name is only one word and all other words make up the last name
-                firstname = ent[0].text
-                lastname = ent[1:].text
+            # Check for alternative entity text (i.e. firstname + lastname) which will have
+            # been inserted if EntityJoiner was applied before DuplicateEntityDetector in the
+            # pipeline.
+            if (
+                spacy.tokens.Span.has_extension("alt_ent_text")
+                and ent._.alt_ent_text is not None
+            ):
+                len_ent = len(ent._.alt_ent_text.split(" "))
+            else:
+                len_ent = len(ent)
+
+            if (ent.label_ == "PERSON") and (len_ent > 1):
+                # Assumes first name is only one word and all other words make up the last name.
+                if (
+                    spacy.tokens.Span.has_extension("alt_ent_text")
+                    and ent._.alt_ent_text is not None
+                ):
+                    ent_text_split = ent._.alt_ent_text.split(" ")
+                    firstname = ent_text_split[0]
+                    lastname = " ".join(ent_text_split[1:])
+                else:
+                    firstname = ent[0].text
+                    lastname = ent[1:].text
 
                 # find other entities with text equal to firstname or lastname. Only look at entities in the
                 # doc that occur after the current entity.
