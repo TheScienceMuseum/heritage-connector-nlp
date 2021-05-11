@@ -360,12 +360,66 @@ class MapEntityTypes:
 class EntityJoiner:
     """
     A pipeline element which operates on doc objects with entities already annotated. It:
-    - joins consecutive entities which have the same label
+    - joins consecutive entities which have the same label;
     - joins pairs of location entities (by default those with label LOC) which are separated by only a comma.
+    - for consecutive PERSON entities separated by an 'and' (e.g. 'Katharine and Charles Parsons'), sets the
+    span attribute `ent._.alt_ent_text` to the full name of the first person ('Katharine Parsons',
+    using the same example). Useful for entity linking.
     """
 
     def __init__(self, nlp, name):
         self.nlp = nlp
+
+    def _detect_joined_person_entities(self, doc: spacy.tokens.Doc) -> spacy.tokens.Doc:
+        """Detect two people in a row separated by an 'and', where the first person is only referred to by their
+        first name. Set the attribute `ent._.alt_ent_text` for the first person to their first name, plus
+        the surname of the next mentioned person.
+
+        Args:
+            doc (spacy.tokens.Doc)
+
+        Returns:
+            spacy.tokens.Doc: amended doc
+        """
+        # set custom span attributes
+        if not spacy.tokens.Span.has_extension("alt_ent_text"):
+            spacy.tokens.Span.set_extension("alt_ent_text", default=None)
+
+        idx = 0
+        new_ents = []
+
+        while idx < len(doc.ents):
+            if idx + 1 == len(doc.ents):
+                new_ents.append(doc.ents[idx])
+                idx += 1
+                continue
+
+            if doc.ents[idx].end >= len(doc):
+                idx += 1
+                continue
+
+            curr_ent = doc.ents[idx]
+            next_token = doc[curr_ent.end]
+            next_ent = doc.ents[idx + 1]
+
+            # two consecutive entities are labelled PERSON; separated only by 'and' or '&'; don't share the same last token (i.e. surname)
+            if (
+                (curr_ent.label_ == next_ent.label_ == "PERSON")
+                and (next_token.text.lower() in {"and", "&"})
+                and (curr_ent.end + 1 == next_ent.start)
+                and (curr_ent[-1].text.lower() != next_ent[-1].text.lower())
+            ):
+                # assume lastname is all tokens but the first
+                lastname = next_ent[1:].text
+                curr_ent._.alt_ent_text = curr_ent.text + " " + lastname
+
+            new_ents.append(curr_ent)
+            idx += 1
+
+        newdoc = copy.copy(doc)
+        newdoc.ents = new_ents
+
+        return newdoc
 
     def _join_consecutive_ents_with_same_label(
         self, doc: spacy.tokens.Doc, exclude_types: Sequence[str] = []
@@ -497,6 +551,7 @@ class EntityJoiner:
         newdoc = copy.copy(doc)
         newdoc = self._join_consecutive_ents_with_same_label(newdoc)
         newdoc = self._join_comma_separated_locs(newdoc)
+        newdoc = self._detect_joined_person_entities(newdoc)
 
         return newdoc
 
@@ -527,12 +582,12 @@ class DuplicateEntityDetector:
 
         self.types_ignore = {"PERSON", "ORG", "LOC"}.intersection(set(types_ignore))
 
-        try:
-            # set custom span attributes
+        # set custom span attributes
+        if not spacy.tokens.Span.has_extension("entity_co_occurrence"):
             spacy.tokens.Span.set_extension("entity_co_occurrence", default=None)
+
+        if not spacy.tokens.Span.has_extension("entity_duplicate"):
             spacy.tokens.Span.set_extension("entity_duplicate", default=False)
-        except Exception:
-            logger.warning("Custom span attributes already added.")
 
     def _detect_duplicate_person_mentions(
         self, doc: spacy.tokens.Doc
@@ -556,10 +611,29 @@ class DuplicateEntityDetector:
         for idx, ent in enumerate(newdoc.ents):
             found_entity_co_occurrence = False
 
-            if (ent.label_ == "PERSON") and (len(ent) > 1):
-                # assumes first name is only one word and all other words make up the last name
-                firstname = ent[0].text
-                lastname = ent[1:].text
+            # Check for alternative entity text (i.e. firstname + lastname) which will have
+            # been inserted if EntityJoiner was applied before DuplicateEntityDetector in the
+            # pipeline.
+            if (
+                spacy.tokens.Span.has_extension("alt_ent_text")
+                and ent._.alt_ent_text is not None
+            ):
+                len_ent = len(ent._.alt_ent_text.split(" "))
+            else:
+                len_ent = len(ent)
+
+            if (ent.label_ == "PERSON") and (len_ent > 1):
+                # Assumes first name is only one word and all other words make up the last name.
+                if (
+                    spacy.tokens.Span.has_extension("alt_ent_text")
+                    and ent._.alt_ent_text is not None
+                ):
+                    ent_text_split = ent._.alt_ent_text.split(" ")
+                    firstname = ent_text_split[0]
+                    lastname = " ".join(ent_text_split[1:])
+                else:
+                    firstname = ent[0].text
+                    lastname = ent[1:].text
 
                 # find other entities with text equal to firstname or lastname. Only look at entities in the
                 # doc that occur after the current entity.
