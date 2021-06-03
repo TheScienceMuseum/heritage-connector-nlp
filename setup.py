@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="hc-nlp",
-    version="0.3.7",
+    version="0.3.8",
     author="Science Museum Group",
     description="Heritage Connector NLP",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/TheScienceMuseum/heritage-connector-nlp",
-    download_url="https://github.com/TheScienceMuseum/heritage-connector-nlp/archive/v0.3.7.tar.gz",
+    download_url="https://github.com/TheScienceMuseum/heritage-connector-nlp/archive/v0.3.8.tar.gz",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
