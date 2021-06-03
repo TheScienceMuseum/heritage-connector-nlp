@@ -405,6 +405,7 @@ class EntityJoiner:
             # two consecutive entities are labelled PERSON; separated only by 'and' or '&'; don't share the same last token (i.e. surname)
             if (
                 (curr_ent.label_ == next_ent.label_ == "PERSON")
+                and (len(curr_ent) == 1)
                 and (next_token.text.lower() in {"and", "&"})
                 and (curr_ent.end + 1 == next_ent.start)
                 and (curr_ent[-1].text.lower() != next_ent[-1].text.lower())
