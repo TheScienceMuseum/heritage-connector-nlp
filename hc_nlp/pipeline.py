@@ -303,7 +303,7 @@ class DateMatcher(PatternMatcher):
                         # TODO: check for overlap instead of just failing
                         # TODO: handle the specific spaCy error
                         logger.warn(
-                            f"Failed to add DATE entity {date_entity.text} in pos {(start, end)} to text {doc.text}. Exception: {e}"
+                            f"Failed to add DATE entity in pos {(start, end)} to text {doc.text}. Exception: {e}"
                         )
         return doc
 
