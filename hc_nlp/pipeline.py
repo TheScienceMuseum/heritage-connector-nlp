@@ -161,8 +161,10 @@ class EntityFilter:
 
         for ent in newdoc.ents:
             if ent.label_ == "PERSON":
-                if (newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES) and (
-                    not newdoc[ent.start - 1].ent_type_
+                if (
+                    (ent.start - 1 >= 0)
+                    and (newdoc[ent.start - 1].text.lower() in constants.ROYAL_TITLES)
+                    and (not newdoc[ent.start - 1].ent_type_)
                 ):
                     new_ent = spacy.tokens.Span(
                         newdoc, ent.start - 1, ent.end, label="PERSON"
